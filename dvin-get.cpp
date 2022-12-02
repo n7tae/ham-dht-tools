@@ -30,19 +30,20 @@ static std::mutex mtx;
 
 int main(int argc, char *argv[])
 {
-	if (3 != argc)
+	if (2 < argc || argc > 3)
 	{
-		std::cout << "usage: " << argv[0] << " bootstrap key" << std::endl;
+		std::cout << "usage: " << argv[0] << " <bootstrap> key" << std::endl;
 		return EXIT_FAILURE;
 	}
 
-	const std::string key(argv[2]);
+	const std::string bs((2==argc) ? "xrf757.openquad.net" : argv[1]);
+	const std::string key(argv[argc-1]);
 
 	std::string name("TestGet");
 	name += std::to_string(getpid());
 	dht::DhtRunner node;
 	node.run(17171, dht::crypto::generateIdentity(name));
-	node.bootstrap(argv[1], "17171");
+	node.bootstrap(bs, "17171");
 	std::cout << "Joined the DHT at " << argv[1] << " using an id of " << name << std::endl;
 	std::cout << "Getting Data for " << key << " ..." << std::endl;
 	auto starttime = std::chrono::steady_clock::now();
@@ -51,63 +52,79 @@ int main(int argc, char *argv[])
 		[](const std::shared_ptr<dht::Value> &v) {
 			if (v->checkSignature())
 			{
-				std::cout << "Value is signed" << std::endl;
-				std::cout << "User Type: " << v->user_type << std::endl;
-				if (0 == v->user_type.compare("reflector-mrefd-0"))
+				switch (v->id)
 				{
-					auto rdat = dht::Value::unpack<SReflectorData0>(*v);
-					std::cout << "Callsign: '" << rdat.cs << "'" << std::endl;
-					std::cout << "Modules: '" << rdat.mods << "'" << std::endl;
-					std::cout << "IPv4 Address: '" << rdat.ipv4 << "'" << std::endl;
-					std::cout << "IPv6 Address: '" << rdat.ipv6 << "'" << std::endl;
-					std::cout << "Port: " << rdat.port << std::endl;
-					std::cout << "URL: '" << rdat.url << "'" << std::endl;
-					std::cout << "Email Address: '" << rdat.email << "'" << std::endl;
-					if (rdat.peers.size())
-					{
-						std::cout << "Peer\tModule(s):" << std::endl;
-						for (const auto &p : rdat.peers)
+					case toUType(EMrefdValueID::Config):
+						if (0 == v->user_type.compare("mrefd-config-0"))
 						{
-							std::cout << p.first << '\t' << p.second << std::endl;
+							auto rdat = dht::Value::unpack<SMrefdConfig0>(*v);
+							std::cout << "###Configuration###" << std::endl;
+							std::cout << "Callsign='" << rdat.cs << "'" << std::endl;
+							std::cout << "Modules='" << rdat.mods << "'" << std::endl;
+							std::cout << "IPv4 Address='" << rdat.ipv4 << "'" << std::endl;
+							std::cout << "IPv6 Address='" << rdat.ipv6 << "'" << std::endl;
+							std::cout << "Port=" << rdat.port << std::endl;
+							std::cout << "URL='" << rdat.url << "'" << std::endl;
+							std::cout << "Country='" << rdat.country << "'" << std::endl;
+							std::cout << "Sponsor='" << rdat.sponsor << "'" << std::endl;
+							std::cout << "Email Address='" << rdat.email << "'" << std::endl;
 						}
-					}
-					else
-					{
-						std::cout << "Peers: none" << std::endl;
-					}
-				}
-				else if (0 == v->user_type.compare("reflector-mrefd-1"))
-				{
-					auto rdat = dht::Value::unpack<SReflectorData1>(*v);
-					std::cout << "Callsign: '" << rdat.cs << "'" << std::endl;
-					std::cout << "Modules: '" << rdat.mods << "'" << std::endl;
-					std::cout << "Encryption Enabled Modules: " << rdat.emods << std::endl;
-					std::cout << "IPv4 Address: '" << rdat.ipv4 << "'" << std::endl;
-					std::cout << "IPv6 Address: '" << rdat.ipv6 << "'" << std::endl;
-					std::cout << "Port: " << rdat.port << std::endl;
-					std::cout << "URL: '" << rdat.url << "'" << std::endl;
-					std::cout << "Email Address: '" << rdat.email << "'" << std::endl;
-					std::cout << "Sponsor: '" << rdat.sponsor << "'" << std::endl;
-					std::cout << "Country: '" << rdat.country << "'" << std::endl;
-					if (rdat.peers.size())
-					{
-						std::cout << "Peer\tModule(s):" << std::endl;
-						for (const auto &p : rdat.peers)
+						else
+							std::cout << "Unknown User Type: " << v->user_type << std::endl;
+						break;
+					case toUType(EMrefdValueID::Peers):
+						if (0 == v->user_type.compare("mrefd-peers-0"))
 						{
-							std::cout << p.first << '\t' << p.second << std::endl;
+							auto rdat = dht::Value::unpack<SMrefdPeers0>(*v);
+							if (rdat.peers.size())
+							{
+								std::cout << "###PEERS###" << std::endl << "Callsign,Modules,Connect,LastHeard" << std::endl;
+								for (const auto &peer : rdat.peers)
+								{
+									std::cout <<
+									std::get<toUType(EMrefdPeerFields::Callsign)>(peer) << ',' <<
+									std::get<toUType(EMrefdPeerFields::Modules)>(peer) << ',' <<
+									asctime(localtime(&std::get<toUType(EMrefdPeerFields::ConnectTime)>(peer))) << ',' <<
+									asctime(localtime(&std::get<toUType(EMrefdPeerFields::LastHeardTime)>(peer))) << std::endl;
+								}
+							}
+							else
+								std::cout << "###PEERS list is empty###" << std::endl;
 						}
-					}
-					else
-					{
-						std::cout << "Peers: none" << std::endl;
-					}
+						else
+							std::cout << "Unknown user type: " << v->user_type << std::endl;
+						break;
+					case toUType(EMrefdValueID::Clients):
+						if (0 == v->user_type.compare("mrefd-clients-0"))
+						{
+							auto rdat = dht::Value::unpack<SMrefdClients0>(*v);
+							if (rdat.clients.size())
+							{
+								std::cout << "###Clients###" << std::endl << "Module,Callsign,IP,Connect,LastHeard" << std::endl;
+								for (const auto &client : rdat.clients)
+								{
+									std::cout <<
+									std::get<toUType(EMrefdClientFields::Module)>(client) << ',' <<
+									std::get<toUType(EMrefdClientFields::Callsign)>(client) << ',' <<
+									std::get<toUType(EMrefdClientFields::Ip)>(client) << ',' <<
+									asctime(localtime(&std::get<toUType(EMrefdClientFields::ConnectTime)>(client))) << ',' <<
+									asctime(localtime(&std::get<toUType(EMrefdClientFields::LastHeardTime)>(client))) << std::endl;
+								}
+							}
+							else
+								std::cout << "###CLIENTS list is empty###" << std::endl;
+						}
+						else
+							std::cout << "Unknown user type: " << v->user_type << std::endl;
+						break;
+					default:
+						std::cout << "Don't recognize id=0x" << std::hex << v->id << std::dec << std::endl;
+						break;
 				}
-				else
-					std::cout << "Unknown User Type: " << v->user_type << std::endl;
 			}
 			else
 				std::cout << "Value signature failed!" << std::endl;
-			return false;
+			return true;
 		},
 		[](bool success) {
 			if (! success)
