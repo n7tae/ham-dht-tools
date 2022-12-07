@@ -22,22 +22,37 @@
 #include <mutex>
 #include <condition_variable>
 
-#include "DVINDataTypes.h"
+#include "reflectordht.h"
 
 static bool running = true;
 static std::condition_variable cv;
 static std::mutex mtx;
 
+static const char *TimeString(const std::time_t tt)
+{
+	static char str[32];
+	strftime(str, 32, "%D %R", localtime(&tt));
+	return str;
+}
+
 int main(int argc, char *argv[])
 {
-	if (2 < argc || argc > 3)
+	if (2 > argc || argc > 3)
 	{
 		std::cout << "usage: " << argv[0] << " <bootstrap> key" << std::endl;
 		return EXIT_FAILURE;
 	}
 
 	const std::string bs((2==argc) ? "xrf757.openquad.net" : argv[1]);
+	auto p = argv[argc-1];
+	while (*p)
+	{
+		if (std::islower(*p))
+			*p = std::toupper(*p);
+		p++;
+	}
 	const std::string key(argv[argc-1]);
+	auto keyhash = dht::InfoHash::get(key);
 
 	std::string name("TestGet");
 	name += std::to_string(getpid());
@@ -45,10 +60,10 @@ int main(int argc, char *argv[])
 	node.run(17171, dht::crypto::generateIdentity(name));
 	node.bootstrap(bs, "17171");
 	std::cout << "Joined the DHT at " << argv[1] << " using an id of " << name << std::endl;
-	std::cout << "Getting Data for " << key << " ..." << std::endl;
+	std::cout << "Getting Data for " << key << " with hash " << keyhash << std::endl;
 	auto starttime = std::chrono::steady_clock::now();
 	node.get(
-		dht::InfoHash::get(key),
+		keyhash,
 		[](const std::shared_ptr<dht::Value> &v) {
 			if (v->checkSignature())
 			{
@@ -59,15 +74,16 @@ int main(int argc, char *argv[])
 						{
 							auto rdat = dht::Value::unpack<SMrefdConfig0>(*v);
 							std::cout << "###Configuration###" << std::endl;
-							std::cout << "Callsign='" << rdat.cs << "'" << std::endl;
-							std::cout << "Modules='" << rdat.mods << "'" << std::endl;
-							std::cout << "IPv4 Address='" << rdat.ipv4 << "'" << std::endl;
-							std::cout << "IPv6 Address='" << rdat.ipv6 << "'" << std::endl;
+							std::cout << "Callsign=" << rdat.cs << std::endl;
+							std::cout << "Version=" << rdat.version << std::endl;
+							std::cout << "Modules=" << rdat.mods << std::endl;
+							std::cout << "IPv4 Address=" << rdat.ipv4 << std::endl;
+							std::cout << "IPv6 Address=" << rdat.ipv6 << std::endl;
 							std::cout << "Port=" << rdat.port << std::endl;
-							std::cout << "URL='" << rdat.url << "'" << std::endl;
-							std::cout << "Country='" << rdat.country << "'" << std::endl;
-							std::cout << "Sponsor='" << rdat.sponsor << "'" << std::endl;
-							std::cout << "Email Address='" << rdat.email << "'" << std::endl;
+							std::cout << "URL=" << rdat.url << std::endl;
+							std::cout << "Country=" << rdat.country << std::endl;
+							std::cout << "Sponsor=" << rdat.sponsor << std::endl;
+							std::cout << "Email Address=" << rdat.email << std::endl;
 						}
 						else
 							std::cout << "Unknown User Type: " << v->user_type << std::endl;
@@ -78,14 +94,13 @@ int main(int argc, char *argv[])
 							auto rdat = dht::Value::unpack<SMrefdPeers0>(*v);
 							if (rdat.peers.size())
 							{
-								std::cout << "###PEERS###" << std::endl << "Callsign,Modules,Connect,LastHeard" << std::endl;
+								std::cout << "###PEERS###" << std::endl << "Callsign,Modules,Connect" << std::endl;
 								for (const auto &peer : rdat.peers)
 								{
 									std::cout <<
 									std::get<toUType(EMrefdPeerFields::Callsign)>(peer) << ',' <<
 									std::get<toUType(EMrefdPeerFields::Modules)>(peer) << ',' <<
-									asctime(localtime(&std::get<toUType(EMrefdPeerFields::ConnectTime)>(peer))) << ',' <<
-									asctime(localtime(&std::get<toUType(EMrefdPeerFields::LastHeardTime)>(peer))) << std::endl;
+									TimeString(std::get<toUType(EMrefdPeerFields::ConnectTime)>(peer)) << std::endl;
 								}
 							}
 							else
@@ -107,12 +122,34 @@ int main(int argc, char *argv[])
 									std::get<toUType(EMrefdClientFields::Module)>(client) << ',' <<
 									std::get<toUType(EMrefdClientFields::Callsign)>(client) << ',' <<
 									std::get<toUType(EMrefdClientFields::Ip)>(client) << ',' <<
-									asctime(localtime(&std::get<toUType(EMrefdClientFields::ConnectTime)>(client))) << ',' <<
-									asctime(localtime(&std::get<toUType(EMrefdClientFields::LastHeardTime)>(client))) << std::endl;
+									TimeString(std::get<toUType(EMrefdClientFields::ConnectTime)>(client)) << ',' <<
+									TimeString(std::get<toUType(EMrefdClientFields::LastHeardTime)>(client)) << std::endl;
 								}
 							}
 							else
 								std::cout << "###CLIENTS list is empty###" << std::endl;
+						}
+						else
+							std::cout << "Unknown user type: " << v->user_type << std::endl;
+						break;
+					case toUType(EMrefdValueID::Users):
+						if (0 == v->user_type.compare("mrefd-users-0"))
+						{
+							auto rdat = dht::Value::unpack<SMrefdUsers0>(*v);
+							if (rdat.users.size())
+							{
+								std::cout << "###Users###" << std::endl << "Source,Destination,Reflector,LastHeard" << std::endl;
+								for (const auto &user : rdat.users)
+								{
+									std::cout <<
+									std::get<toUType(EMrefdUserFields::Source)>(user) << ',' <<
+									std::get<toUType(EMrefdUserFields::Destination)>(user) << ',' <<
+									std::get<toUType(EMrefdUserFields::Reflector)>(user) << ',' <<
+									TimeString(std::get<toUType(EMrefdUserFields::LastHeardTime)>(user)) << std::endl;
+								}
+							}
+							else
+								std::cout << "###USERS list is empty###" << std::endl;
 						}
 						else
 							std::cout << "Unknown user type: " << v->user_type << std::endl;
