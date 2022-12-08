@@ -59,7 +59,7 @@ int main(int argc, char *argv[])
 	dht::DhtRunner node;
 	node.run(17171, dht::crypto::generateIdentity(name));
 	node.bootstrap(bs, "17171");
-	std::cout << "Joined the DHT at " << argv[1] << " using an id of " << name << std::endl;
+	std::cout << "Joined the DHT at " << bs << " using an id of " << name << std::endl;
 	std::cout << "Getting Data for " << key << " with hash " << keyhash << std::endl;
 	auto starttime = std::chrono::steady_clock::now();
 	node.get(
@@ -86,7 +86,7 @@ int main(int argc, char *argv[])
 							std::cout << "Email Address=" << rdat.email << std::endl;
 						}
 						else
-							std::cout << "Unknown User Type: " << v->user_type << std::endl;
+							std::cout << "Unknown Configuration user_type: " << v->user_type << std::endl;
 						break;
 					case toUType(EMrefdValueID::Peers):
 						if (0 == v->user_type.compare("mrefd-peers-0"))
@@ -94,7 +94,7 @@ int main(int argc, char *argv[])
 							auto rdat = dht::Value::unpack<SMrefdPeers0>(*v);
 							if (rdat.peers.size())
 							{
-								std::cout << "###PEERS###" << std::endl << "Callsign,Modules,Connect" << std::endl;
+								std::cout << "###Peers###" << std::endl << "Callsign,Modules,Connect" << std::endl;
 								for (const auto &peer : rdat.peers)
 								{
 									std::cout <<
@@ -104,10 +104,10 @@ int main(int argc, char *argv[])
 								}
 							}
 							else
-								std::cout << "###PEERS list is empty###" << std::endl;
+								std::cout << "###Peers list is empty###" << std::endl;
 						}
 						else
-							std::cout << "Unknown user type: " << v->user_type << std::endl;
+							std::cout << "Unknown Peers user_type: " << v->user_type << std::endl;
 						break;
 					case toUType(EMrefdValueID::Clients):
 						if (0 == v->user_type.compare("mrefd-clients-0"))
@@ -127,10 +127,10 @@ int main(int argc, char *argv[])
 								}
 							}
 							else
-								std::cout << "###CLIENTS list is empty###" << std::endl;
+								std::cout << "###Clients list is empty###" << std::endl;
 						}
 						else
-							std::cout << "Unknown user type: " << v->user_type << std::endl;
+							std::cout << "Unknown Clients user_type: " << v->user_type << std::endl;
 						break;
 					case toUType(EMrefdValueID::Users):
 						if (0 == v->user_type.compare("mrefd-users-0"))
@@ -149,10 +149,10 @@ int main(int argc, char *argv[])
 								}
 							}
 							else
-								std::cout << "###USERS list is empty###" << std::endl;
+								std::cout << "###Users list is empty###" << std::endl;
 						}
 						else
-							std::cout << "Unknown user type: " << v->user_type << std::endl;
+							std::cout << "Unknown Users user_type: " << v->user_type << std::endl;
 						break;
 					default:
 						std::cout << "Don't recognize id=0x" << std::hex << v->id << std::dec << std::endl;
