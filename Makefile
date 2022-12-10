@@ -33,7 +33,7 @@ ifeq ($(debug), true)
 CFLAGS += -ggdb3
 endif
 
-dvin-get : dvin-get.cpp
+dht-get : dht-get.cpp
 	$(CXX) $(CFLAGS) -o $@ $^ -pthread -lopendht
 
 clean :
