@@ -37,7 +37,7 @@ dht-get : dht-get.cpp
 	$(CXX) $(CFLAGS) -o $@ $^ -pthread -lopendht
 
 clean :
-	$(RM) *.o *.d dvin-get
+	$(RM) *.o *.d dht-get
 
 -include $(DEPS)
 

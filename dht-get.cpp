@@ -35,7 +35,10 @@ dht::Where w;
 static const char *TimeString(const std::time_t tt)
 {
 	static char str[32];
-	strftime(str, 32, "%D %R", use_gmt ? gmtime(&tt) : localtime(&tt));
+	if (use_gmt)
+		strftime(str, 32, "%F %T", gmtime(&tt));
+	else
+		strftime(str, 32, "%F %T %Z", localtime(&tt));
 	return str;
 }
 
@@ -43,21 +46,34 @@ static void PrintConfig0(const SMrefdConfig0 &rdat)
 {
 	if (use_json)
 	{
-
+		std::cout << '{'
+			<< "\"Callsign\":\""      << rdat.cs      << "\","
+		    <<  "\"Version\":\""      << rdat.version << "\","
+		    <<  "\"Modules\":\""      << rdat.mods    << "\","
+		    <<  "\"EncryptMods\":\""  << rdat.emods   << "\","
+		    <<  "\"IPv4Address\":\""  << rdat.ipv4    << "\","
+		    <<  "\"IPv6Address\":\""  << rdat.ipv6    << "\","
+		    <<  "\"URL\":\""          << rdat.url     << "\","
+		    <<  "\"Country\":\""      << rdat.country << "\","
+		    <<  "\"Sponsor\":\""      << rdat.sponsor << "\","
+		    <<  "\"Email\":\""        << rdat.email   << "\","
+		    <<  "\"Port\":"           << rdat.port    << '}'
+			<< std::endl;
 	}
 	else
 	{
-		std::cout << "# Configuration" << std::endl;
-		std::cout << "Callsign=" << rdat.cs << std::endl;
-		std::cout << "Version=" << rdat.version << std::endl;
-		std::cout << "Modules=" << rdat.mods << std::endl;
-		std::cout << "IPv4Address=" << rdat.ipv4 << std::endl;
-		std::cout << "IPv6Address=" << rdat.ipv6 << std::endl;
-		std::cout << "Port=" << rdat.port << std::endl;
-		std::cout << "URL=" << rdat.url << std::endl;
-		std::cout << "Country=" << rdat.country << std::endl;
-		std::cout << "Sponsor=" << rdat.sponsor << std::endl;
-		std::cout << "EmailAddress=" << rdat.email << std::endl;
+		std::cout << "# Configuration"      << std::endl <<
+			"Callsign="     << rdat.cs      << std::endl <<
+			"Version="      << rdat.version << std::endl <<
+			"Modules="      << rdat.mods    << std::endl <<
+			"EncryptMods="  << rdat.mods    << std::endl <<
+			"IPv4Address="  << rdat.ipv4    << std::endl <<
+			"IPv6Address="  << rdat.ipv6    << std::endl <<
+			"Port="         << rdat.port    << std::endl <<
+			"URL="          << rdat.url     << std::endl <<
+			"Country="      << rdat.country << std::endl <<
+			"Sponsor="      << rdat.sponsor << std::endl <<
+			"EmailAddress=" << rdat.email   << std::endl;
 	}
 }
 
@@ -65,13 +81,24 @@ static void PrintPeers0(const SMrefdPeers0 &rdat)
 {
 	if (use_json)
 	{
-
+		std::cout << "{\"Peers\":[";
+		auto pit=rdat.peers.cbegin();
+		while (pit != rdat.peers.cend())
+		{
+			std::cout <<
+				"{\"Callsign\":\""   << std::get<toUType(EMrefdPeerFields::Callsign)>(*pit) << "\"," <<
+				"\"Modules\":\""     << std::get<toUType(EMrefdPeerFields::Modules)>(*pit)  << "\"," <<
+				"\"ConnectTime\":\"" << TimeString(std::get<toUType(EMrefdPeerFields::ConnectTime)>(*pit)) << "\"}";
+			if (++pit != rdat.peers.end())
+				std::cout << ',';
+		}
+		std::cout << ']' << std::endl;
 	}
 	else
 	{
 		if (rdat.peers.size())
 		{
-			std::cout << "# Peers" << std::endl << "Callsign,Modules,Connect" << std::endl;
+			std::cout << "# Peers" << std::endl << "Callsign,Modules,ConnectTime" << std::endl;
 			for (const auto &peer : rdat.peers)
 			{
 				std::cout <<
@@ -89,13 +116,26 @@ static void PrintClients0(const SMrefdClients0 &rdat)
 {
 	if (use_json)
 	{
-
+		std::cout << "\"Clients\":[";
+		auto cit = rdat.clients.cbegin();
+		while (cit != rdat.clients.cend())
+		{
+			std::cout <<
+				"{\"Module\":\""       << std::get<toUType(EMrefdClientFields::Module)>(*cit)                    << "\"," <<
+				"\"Callsign\":\""      << std::get<toUType(EMrefdClientFields::Callsign)>(*cit)                  << "\"," <<
+				"\"IP\":\""            << std::get<toUType(EMrefdClientFields::Ip)>(*cit)                        << "\"," <<
+				"\"ConnectTime\":\""   << TimeString(std::get<toUType(EMrefdClientFields::ConnectTime)>(*cit))   << "\"," <<
+				"\"LastHeardTime\":\"" << TimeString(std::get<toUType(EMrefdClientFields::LastHeardTime)>(*cit)) << "\"}";
+			if (++cit != rdat.clients.cend())
+				std::cout << ',';
+		}
+		std::cout << ']' << std::endl;
 	}
 	else
 	{
 		if (rdat.clients.size())
 		{
-			std::cout << "# Clients" << std::endl << "Module,Callsign,IP,Connect,LastHeard" << std::endl;
+			std::cout << "# Clients" << std::endl << "Module,Callsign,IP,ConnectTime,LastHeardTime" << std::endl;
 			for (const auto &client : rdat.clients)
 			{
 				std::cout <<
@@ -115,20 +155,32 @@ static void PrintUsers0(const SMrefdUsers0 &rdat)
 {
 	if (use_json)
 	{
-
+		std::cout << "{\"Users\":[";
+		auto uit = rdat.users.cbegin();
+		while (uit != rdat.users.cend())
+		{
+			std::cout <<
+				"{\"Source\":\""       << std::get<toUType(EMrefdUserFields::Source)>(*uit)                    << "\"," <<
+				"\"Destination\":\""   << std::get<toUType(EMrefdUserFields::Destination)>(*uit)               << "\"," <<
+				"\"Reflector\":\""     << std::get<toUType(EMrefdUserFields::Reflector)>(*uit)                 << "\"," <<
+				"\"LastHeardTime\":\"" << TimeString(std::get<toUType(EMrefdUserFields::LastHeardTime)>(*uit)) << "\"}";
+			if (++uit != rdat.users.cend())
+				std::cout << ',';
+		}
+		std::cout << ']' << std::endl;
 	}
 	else
 	{
 		if (rdat.users.size())
 		{
-			std::cout << "# Users" << std::endl << "Source,Destination,Reflector,LastHeard" << std::endl;
+			std::cout << "# Users" << std::endl << "Source,Destination,Reflector,LastHeardTime" << std::endl;
 			for (const auto &user : rdat.users)
 			{
 				std::cout <<
-				std::get<toUType(EMrefdUserFields::Source)>(user) << ',' <<
-				std::get<toUType(EMrefdUserFields::Destination)>(user) << ',' <<
-				std::get<toUType(EMrefdUserFields::Reflector)>(user) << ',' <<
-				TimeString(std::get<toUType(EMrefdUserFields::LastHeardTime)>(user)) << std::endl;
+					std::get<toUType(EMrefdUserFields::Source)>(user) << ',' <<
+					std::get<toUType(EMrefdUserFields::Destination)>(user) << ',' <<
+					std::get<toUType(EMrefdUserFields::Reflector)>(user) << ',' <<
+					TimeString(std::get<toUType(EMrefdUserFields::LastHeardTime)>(user)) << std::endl;
 			}
 		}
 		else
@@ -176,7 +228,7 @@ int main(int argc, char *argv[])
 			break;
 
 			case 'j':
-			//use_json = true;
+			use_json = true;
 			break;
 
 			case 'g':
