@@ -57,7 +57,7 @@ static void PrintConfig0(const SMrefdConfig0 &rdat)
 		    <<  "\"Country\":\""      << rdat.country << "\","
 		    <<  "\"Sponsor\":\""      << rdat.sponsor << "\","
 		    <<  "\"Email\":\""        << rdat.email   << "\","
-		    <<  "\"Port\":"           << rdat.port    << '}'
+		    <<  "\"Port\":"           << rdat.port    << ','
 			<< std::endl;
 	}
 	else
@@ -81,7 +81,7 @@ static void PrintPeers0(const SMrefdPeers0 &rdat)
 {
 	if (use_json)
 	{
-		std::cout << "{\"Peers\":[";
+		std::cout << "\"Peers\":[";
 		auto pit=rdat.peers.cbegin();
 		while (pit != rdat.peers.cend())
 		{
@@ -92,7 +92,7 @@ static void PrintPeers0(const SMrefdPeers0 &rdat)
 			if (++pit != rdat.peers.end())
 				std::cout << ',';
 		}
-		std::cout << ']' << std::endl;
+		std::cout << "]," << std::endl;
 	}
 	else
 	{
@@ -129,7 +129,7 @@ static void PrintClients0(const SMrefdClients0 &rdat)
 			if (++cit != rdat.clients.cend())
 				std::cout << ',';
 		}
-		std::cout << ']' << std::endl;
+		std::cout << "]}" << std::endl;
 	}
 	else
 	{
@@ -155,7 +155,7 @@ static void PrintUsers0(const SMrefdUsers0 &rdat)
 {
 	if (use_json)
 	{
-		std::cout << "{\"Users\":[";
+		std::cout << "\"Users\":[";
 		auto uit = rdat.users.cbegin();
 		while (uit != rdat.users.cend())
 		{
@@ -167,7 +167,7 @@ static void PrintUsers0(const SMrefdUsers0 &rdat)
 			if (++uit != rdat.users.cend())
 				std::cout << ',';
 		}
-		std::cout << ']' << std::endl;
+		std::cout << "]," << std::endl;
 	}
 	else
 	{
