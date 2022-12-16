@@ -22,15 +22,20 @@
 #include <mutex>
 #include <condition_variable>
 
-#include "reflectordht.h"
+#include "mrefd-dht-values.h"
 
 static bool running = true;
 static std::condition_variable cv;
 static std::mutex mtx;
 static bool use_json = false;
+static char section = 'a';
 static bool use_gmt = false;
 static const std::string default_bs("xrf757.openquad.net");
-dht::Where w;
+static dht::Where w;
+static SMrefdConfig1  config;
+static SMrefdPeers1   peers;
+static SMrefdClients1 clients;
+static SMrefdUsers1   users;
 
 static const char *TimeString(const std::time_t tt)
 {
@@ -42,64 +47,78 @@ static const char *TimeString(const std::time_t tt)
 	return str;
 }
 
-static void PrintConfig0(const SMrefdConfig0 &rdat)
+static void PrintConfig()
 {
 	if (use_json)
 	{
 		std::cout << '{'
-			<< "\"Callsign\":\""      << rdat.cs      << "\","
-		    <<  "\"Version\":\""      << rdat.version << "\","
-		    <<  "\"Modules\":\""      << rdat.mods    << "\","
-		    <<  "\"EncryptMods\":\""  << rdat.emods   << "\","
-		    <<  "\"IPv4Address\":\""  << rdat.ipv4    << "\","
-		    <<  "\"IPv6Address\":\""  << rdat.ipv6    << "\","
-		    <<  "\"URL\":\""          << rdat.url     << "\","
-		    <<  "\"Country\":\""      << rdat.country << "\","
-		    <<  "\"Sponsor\":\""      << rdat.sponsor << "\","
-		    <<  "\"Email\":\""        << rdat.email   << "\","
-		    <<  "\"Port\":"           << rdat.port    << '}'
-			<< std::endl;
+			<< "\"Callsign\":\""      << config.cs      << "\","
+		    <<  "\"Version\":\""      << config.version << "\","
+		    <<  "\"Modules\":\""      << config.mods    << "\","
+		    <<  "\"EncryptMods\":\""  << config.emods   << "\","
+		    <<  "\"IPv4Address\":\""  << config.ipv4    << "\","
+		    <<  "\"IPv6Address\":\""  << config.ipv6    << "\","
+		    <<  "\"URL\":\""          << config.url     << "\","
+		    <<  "\"Country\":\""      << config.country << "\","
+		    <<  "\"Sponsor\":\""      << config.sponsor << "\","
+		    <<  "\"Email\":\""        << config.email   << "\","
+		    <<  "\"Port\":"           << config.port;
+			if (section == 'c')
+				std::cout << '}' << std::endl;
+			else
+				std::cout << ',';
 	}
 	else
 	{
-		std::cout << "# Configuration"      << std::endl <<
-			"Callsign="     << rdat.cs      << std::endl <<
-			"Version="      << rdat.version << std::endl <<
-			"Modules="      << rdat.mods    << std::endl <<
-			"EncryptMods="  << rdat.mods    << std::endl <<
-			"IPv4Address="  << rdat.ipv4    << std::endl <<
-			"IPv6Address="  << rdat.ipv6    << std::endl <<
-			"Port="         << rdat.port    << std::endl <<
-			"URL="          << rdat.url     << std::endl <<
-			"Country="      << rdat.country << std::endl <<
-			"Sponsor="      << rdat.sponsor << std::endl <<
-			"EmailAddress=" << rdat.email   << std::endl;
+		if (config.timestamp)
+		{
+			std::cout << "# Configuration"      << std::endl <<
+				"Callsign="     << config.cs      << std::endl <<
+				"Version="      << config.version << std::endl <<
+				"Modules="      << config.mods    << std::endl <<
+				"EncryptMods="  << config.mods    << std::endl <<
+				"IPv4Address="  << config.ipv4    << std::endl <<
+				"IPv6Address="  << config.ipv6    << std::endl <<
+				"Port="         << config.port    << std::endl <<
+				"URL="          << config.url     << std::endl <<
+				"Country="      << config.country << std::endl <<
+				"Sponsor="      << config.sponsor << std::endl <<
+				"EmailAddress=" << config.email   << std::endl <<
+				"TimeStamp="    << TimeString(config.timestamp) << std::endl;
+		}
 	}
 }
 
-static void PrintPeers0(const SMrefdPeers0 &rdat)
+static void PrintPeers()
 {
 	if (use_json)
 	{
-		std::cout << "{\"Peers\":[";
-		auto pit=rdat.peers.cbegin();
-		while (pit != rdat.peers.cend())
+		std::cout << "\"Peers\":[";
+		auto pit=peers.list.cbegin();
+		while (pit != peers.list.cend())
 		{
 			std::cout <<
 				"{\"Callsign\":\""   << std::get<toUType(EMrefdPeerFields::Callsign)>(*pit) << "\"," <<
 				"\"Modules\":\""     << std::get<toUType(EMrefdPeerFields::Modules)>(*pit)  << "\"," <<
 				"\"ConnectTime\":\"" << TimeString(std::get<toUType(EMrefdPeerFields::ConnectTime)>(*pit)) << "\"}";
-			if (++pit != rdat.peers.end())
+			if (++pit != peers.list.end())
 				std::cout << ',';
 		}
-		std::cout << ']' << std::endl;
+		std::cout << ']';
+		if (section =='p')
+			std::cout << std::endl;
+		else
+			std::cout << ',';
 	}
 	else
 	{
-		if (rdat.peers.size())
+		if (peers.list.size())
 		{
-			std::cout << "# Peers" << std::endl << "Callsign,Modules,ConnectTime" << std::endl;
-			for (const auto &peer : rdat.peers)
+			std::cout << "# Peers" << std::endl;
+			std::cout << "TimeStamp=" << TimeString(peers.timestamp) << std::endl;
+			std::cout << "Sequence="  << peers.sequence << std::endl;
+			std::cout << "Callsign,Modules,ConnectTime" << std::endl;
+			for (const auto &peer : peers.list)
 			{
 				std::cout <<
 				std::get<toUType(EMrefdPeerFields::Callsign)>(peer) << ',' <<
@@ -108,17 +127,17 @@ static void PrintPeers0(const SMrefdPeers0 &rdat)
 			}
 		}
 		else
-			std::cout << "# Peers is empty" << std::endl;
+			std::cout << "# Peer list is empty" << std::endl;
 	}
 }
 
-static void PrintClients0(const SMrefdClients0 &rdat)
+static void PrintClients()
 {
 	if (use_json)
 	{
 		std::cout << "\"Clients\":[";
-		auto cit = rdat.clients.cbegin();
-		while (cit != rdat.clients.cend())
+		auto cit = clients.list.cbegin();
+		while (cit != clients.list.cend())
 		{
 			std::cout <<
 				"{\"Module\":\""       << std::get<toUType(EMrefdClientFields::Module)>(*cit)                    << "\"," <<
@@ -126,17 +145,24 @@ static void PrintClients0(const SMrefdClients0 &rdat)
 				"\"IP\":\""            << std::get<toUType(EMrefdClientFields::Ip)>(*cit)                        << "\"," <<
 				"\"ConnectTime\":\""   << TimeString(std::get<toUType(EMrefdClientFields::ConnectTime)>(*cit))   << "\"," <<
 				"\"LastHeardTime\":\"" << TimeString(std::get<toUType(EMrefdClientFields::LastHeardTime)>(*cit)) << "\"}";
-			if (++cit != rdat.clients.cend())
+			if (++cit != clients.list.cend())
 				std::cout << ',';
 		}
-		std::cout << ']' << std::endl;
+		std::cout << ']';
+		if (section == 'l')
+			std::cout << std::endl;
+		else
+			std::cout << ',';
 	}
 	else
 	{
-		if (rdat.clients.size())
+		if (clients.list.size())
 		{
-			std::cout << "# Clients" << std::endl << "Module,Callsign,IP,ConnectTime,LastHeardTime" << std::endl;
-			for (const auto &client : rdat.clients)
+			std::cout << "# Clients" << std::endl;
+			std::cout << "TimeStamp=" << TimeString(clients.timestamp) << std::endl;
+			std::cout << "Sequence="  << clients.sequence << std::endl;
+			std::cout << "Module,Callsign,IP,ConnectTime,LastHeardTime" << std::endl;
+			for (const auto &client : clients.list)
 			{
 				std::cout <<
 				std::get<toUType(EMrefdClientFields::Module)>(client) << ',' <<
@@ -147,34 +173,40 @@ static void PrintClients0(const SMrefdClients0 &rdat)
 			}
 		}
 		else
-			std::cout << "# Clients is empty###" << std::endl;
+			std::cout << "# Client list is empty###" << std::endl;
 	}
 }
 
-static void PrintUsers0(const SMrefdUsers0 &rdat)
+static void PrintUsers()
 {
 	if (use_json)
 	{
-		std::cout << "{\"Users\":[";
-		auto uit = rdat.users.cbegin();
-		while (uit != rdat.users.cend())
+		std::cout << "\"Users\":[";
+		auto uit = users.list.cbegin();
+		while (uit != users.list.cend())
 		{
 			std::cout <<
 				"{\"Source\":\""       << std::get<toUType(EMrefdUserFields::Source)>(*uit)                    << "\"," <<
 				"\"Destination\":\""   << std::get<toUType(EMrefdUserFields::Destination)>(*uit)               << "\"," <<
 				"\"Reflector\":\""     << std::get<toUType(EMrefdUserFields::Reflector)>(*uit)                 << "\"," <<
 				"\"LastHeardTime\":\"" << TimeString(std::get<toUType(EMrefdUserFields::LastHeardTime)>(*uit)) << "\"}";
-			if (++uit != rdat.users.cend())
+			if (++uit != users.list.cend())
 				std::cout << ',';
 		}
-		std::cout << ']' << std::endl;
+		std::cout << ']';
+		if (section == 'a')
+			std::cout << '}';
+		std::cout << std::endl;
 	}
 	else
 	{
-		if (rdat.users.size())
+		if (users.list.size())
 		{
-			std::cout << "# Users" << std::endl << "Source,Destination,Reflector,LastHeardTime" << std::endl;
-			for (const auto &user : rdat.users)
+			std::cout << "# Users" << std::endl;
+			std::cout << "TimeStamp=" << TimeString(users.timestamp) << std::endl;
+			std::cout << "Sequence="  << users.sequence << std::endl;
+			std::cout << "Source,Destination,Reflector,LastHeardTime" << std::endl;
+			for (const auto &user : users.list)
 			{
 				std::cout <<
 					std::get<toUType(EMrefdUserFields::Source)>(user) << ',' <<
@@ -184,30 +216,31 @@ static void PrintUsers0(const SMrefdUsers0 &rdat)
 			}
 		}
 		else
-			std::cout << "# Users is empty" << std::endl;
+			std::cout << "# User list is empty" << std::endl;
 	}
 
 }
 
 static void Usage(std::ostream &ostr, const char *comname)
 {
-	ostr << "usage: " << comname << " [-b bootstrap] [-s {c|l|p|u}] [-j] [-g] node_name" << std::endl;
-	ostr << "  If no bootstrap is supplied, " << default_bs << " will be used." << std::endl;
-	ostr << "  -s (section) arguments are:" << std::endl;
-	ostr << "    c: configuration" << std::endl;
-	ostr << "    l: linked client list" << std::endl;
-	ostr << "    p: peer list" << std::endl;
-	ostr << "    u: user list" << std::endl;
-	ostr << "  If no section is specified, all sections will be output." << std::endl;
-	ostr << "  -j will output section(s) in json format." << std::endl;
-	ostr << "  -g will output time values in gmt, otherwise local" << std::endl;
+	ostr << "usage: " << comname << " [-b bootstrap] [-s {c|l|p|u}] [-j] [-g] node_name" << std::endl << std::endl;
+	ostr << "Options:" << std::endl;
+	ostr << "    -b (bootstrap) argument is any running node on the dht network" << std::endl;
+	ostr << "       If not specified, " << default_bs << " will be used." << std::endl;
+	ostr << "    -s (section) arguments is one of:" << std::endl;
+	ostr << "        c - configuration" << std::endl;
+	ostr << "        l - linked client list" << std::endl;
+	ostr << "        p - peer list" << std::endl;
+	ostr << "        u - user list" << std::endl;
+	ostr << "        If no section is specified, all sections will be output." << std::endl;
+	ostr << "    -j will output section(s) in json format." << std::endl;
+	ostr << "    -g will output time values in gmt, otherwise local time is reported." << std::endl;
 }
 
 
 int main(int argc, char *argv[])
 {
 	std::string bs(default_bs);
-	char section = 'a';
 	while (1)
 	{
 		int c = getopt(argc, argv, "b:s:jg");
@@ -273,6 +306,8 @@ int main(int argc, char *argv[])
 	const std::string key(argv[optind]);
 	auto keyhash = dht::InfoHash::get(key);
 
+	config.timestamp = peers.timestamp = clients.timestamp = users.timestamp = 0;
+
 	switch (section)
 	{
 		case 'c':
@@ -306,53 +341,91 @@ int main(int argc, char *argv[])
 				switch (v->id)
 				{
 					case toUType(EMrefdValueID::Config):
-						if (0 == v->user_type.compare("mrefd-config-0"))
+						if (0 == v->user_type.compare("mrefd-config-1"))
 						{
-							auto rdat = dht::Value::unpack<SMrefdConfig0>(*v);
-							PrintConfig0(rdat);
+							auto rdat = dht::Value::unpack<SMrefdConfig1>(*v);
+							if (rdat.timestamp > config.timestamp)
+								config = dht::Value::unpack<SMrefdConfig1>(*v);
 						}
-						else
+						else if (! use_json)
 							std::cout << "Unknown Configuration user_type: " << v->user_type << std::endl;
 						break;
 					case toUType(EMrefdValueID::Peers):
-						if (0 == v->user_type.compare("mrefd-peers-0"))
+						if (0 == v->user_type.compare("mrefd-peers-1"))
 						{
-							auto rdat = dht::Value::unpack<SMrefdPeers0>(*v);
-							PrintPeers0(rdat);
+							auto rdat = dht::Value::unpack<SMrefdPeers1>(*v);
+							if (rdat.timestamp > peers.timestamp)
+							{
+								peers = dht::Value::unpack<SMrefdPeers1>(*v);
+							} else if (rdat.timestamp==peers.timestamp)
+							{
+								if (rdat.sequence > peers.sequence)
+									peers = dht::Value::unpack<SMrefdPeers1>(*v);
+							}
 						}
-						else
+						else if (! use_json)
+						{
 							std::cout << "Unknown Peers user_type: " << v->user_type << std::endl;
+						}
 						break;
 					case toUType(EMrefdValueID::Clients):
-						if (0 == v->user_type.compare("mrefd-clients-0"))
+						if (0 == v->user_type.compare("mrefd-clients-1"))
 						{
-							auto rdat = dht::Value::unpack<SMrefdClients0>(*v);
-							PrintClients0(rdat);
+							auto rdat = dht::Value::unpack<SMrefdClients1>(*v);
+							if (rdat.timestamp > peers.timestamp)
+							{
+								clients = dht::Value::unpack<SMrefdClients1>(*v);
+							} else if (rdat.timestamp==clients.timestamp)
+							{
+								if (rdat.sequence > clients.sequence)
+									clients = dht::Value::unpack<SMrefdClients1>(*v);
+							}
 						}
-						else
+						else if (! use_json)
+						{
 							std::cout << "Unknown Clients user_type: " << v->user_type << std::endl;
+						}
 						break;
 					case toUType(EMrefdValueID::Users):
-						if (0 == v->user_type.compare("mrefd-users-0"))
+						if (0 == v->user_type.compare("mrefd-users-1"))
 						{
-							auto rdat = dht::Value::unpack<SMrefdUsers0>(*v);
-							PrintUsers0(rdat);
+							auto rdat = dht::Value::unpack<SMrefdUsers1>(*v);
+							if (rdat.timestamp > peers.timestamp)
+							{
+								users = dht::Value::unpack<SMrefdUsers1>(*v);
+							} else if (rdat.timestamp==users.timestamp)
+							{
+								if (rdat.sequence > users.sequence)
+									users = dht::Value::unpack<SMrefdUsers1>(*v);
+							}
 						}
-						else
+						else if (! use_json)
+						{
 							std::cout << "Unknown Users user_type: " << v->user_type << std::endl;
+						}
 						break;
 					default:
-						std::cout << "Don't recognize id=0x" << std::hex << v->id << std::dec << std::endl;
+						if (! use_json)
+						{
+							std::cout << "Don't recognize id=0x" << std::hex << v->id << std::dec << std::endl;
+						}
 						break;
 				}
 			}
 			else
-				std::cout << "Value signature failed!" << std::endl;
+			{
+				if (! use_json)
+				{
+					std::cout << "Value signature failed!" << std::endl;
+				}
+			}
 			return true;
 		},
 		[](bool success) {
-			if (! success)
-				std::cerr << "get failed!" << std::endl;
+			if (! success && ! use_json)
+			{
+				std::cerr << "get() failed!" << std::endl;
+			}
 			std::unique_lock<std::mutex> lck(mtx);
 			running = false;
 			cv.notify_all();
@@ -363,10 +436,37 @@ int main(int argc, char *argv[])
 
 	std::unique_lock<std::mutex> lck(mtx);
 	while (running)
+	{
 		cv.wait(lck);
+	}
 
-	std::chrono::duration<double> elapsed(std::chrono::steady_clock::now() - starttime);
-	std::cout << "time: " << std::setprecision(3) << elapsed.count() << " seconds" << std::endl;
+	switch (section)
+	{
+		case 'c':
+			PrintConfig();
+			break;
+		case 'p':
+			PrintPeers();
+			break;
+		case 'l':
+			PrintClients();
+			break;
+		case 'u':
+			PrintUsers();
+			break;
+		default:
+			PrintConfig();
+			PrintPeers();
+			PrintClients();
+			PrintUsers();
+			break;
+	}
+
+	if (! use_json)
+	{
+		std::chrono::duration<double> elapsed(std::chrono::steady_clock::now() - starttime);
+		std::cout << "time: " << std::setprecision(3) << elapsed.count() << " seconds" << std::endl;
+	}
 
 	node.join();
 
