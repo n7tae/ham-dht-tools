@@ -76,7 +76,7 @@ static void PrintConfig()
 				"Callsign="     << config.cs      << std::endl <<
 				"Version="      << config.version << std::endl <<
 				"Modules="      << config.mods    << std::endl <<
-				"EncryptMods="  << config.mods    << std::endl <<
+				"EncryptMods="  << config.emods   << std::endl <<
 				"IPv4Address="  << config.ipv4    << std::endl <<
 				"IPv6Address="  << config.ipv6    << std::endl <<
 				"Port="         << config.port    << std::endl <<
