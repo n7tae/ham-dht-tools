@@ -48,7 +48,6 @@ static const char *TimeString(const std::time_t tt)
 
 static void PrintConfig()
 {
-	if (section == 'a')
 	std::cout << '{';
 	std::cout << "\"Configuration\":{"
 		<< "\"Callsign\":\""    << config.cs      << "\","
@@ -63,13 +62,15 @@ static void PrintConfig()
 		<< "\"Email\":\""       << config.email   << "\","
 		<< "\"Port\":"          << config.port    << '}';
 		if (section == 'c')
-			std::cout << std::endl;
+			std::cout << '}' << std::endl;
 		else
 			std::cout << ',';
 }
 
 static void PrintPeers()
 {
+	if ('p' == section)
+		std::cout << '{';
 	std::cout << "\"Peers\":[";
 	auto pit=peers.list.cbegin();
 	while (pit != peers.list.cend())
@@ -83,13 +84,15 @@ static void PrintPeers()
 	}
 	std::cout << ']';
 	if (section =='p')
-		std::cout << std::endl;
+		std::cout << '}' << std::endl;
 	else
 		std::cout << ',';
 }
 
 static void PrintClients()
 {
+	if ('l' == section)
+		std::cout << '{';
 	std::cout << "\"Clients\":[";
 	auto cit = clients.list.cbegin();
 	while (cit != clients.list.cend())
@@ -105,13 +108,15 @@ static void PrintClients()
 	}
 	std::cout << ']';
 	if (section == 'l')
-		std::cout << std::endl;
+		std::cout << '}' << std::endl;
 	else
 		std::cout << ',';
 }
 
 static void PrintUsers()
 {
+	if ('u' == section)
+		std::cout << '{';
 	std::cout << "\"Users\":[";
 	auto uit = users.list.cbegin();
 	while (uit != users.list.cend())
@@ -125,9 +130,7 @@ static void PrintUsers()
 			std::cout << ',';
 	}
 	std::cout << ']';
-	if (section == 'a')
-		std::cout << '}';
-	std::cout << std::endl;
+	std::cout << '}' << std::endl;
 }
 
 static void Usage(std::ostream &ostr, const char *comname)
