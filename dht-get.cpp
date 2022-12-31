@@ -48,89 +48,84 @@ static const char *TimeString(const std::time_t tt)
 
 static void PrintConfig()
 {
-	std::cout << '{';
-	std::cout << "\"Configuration\":{"
-		<< "\"Callsign\":\""    << config.cs      << "\","
-		<< "\"Version\":\""     << config.version << "\","
-	    << "\"Modules\":\""     << config.mods    << "\","
-	    << "\"EncryptMods\":\"" << config.emods   << "\","
-		<< "\"IPv4Address\":\"" << config.ipv4    << "\","
-	    << "\"IPv6Address\":\"" << config.ipv6    << "\","
-	    << "\"URL\":\""         << config.url     << "\","
-		<< "\"Country\":\""     << config.country << "\","
-		<< "\"Sponsor\":\""     << config.sponsor << "\","
-		<< "\"Email\":\""       << config.email   << "\","
-		<< "\"Port\":"          << config.port    << '}';
-		if (section == 'c')
-			std::cout << '}' << std::endl;
-		else
-			std::cout << ',';
+	if (config.timestamp)
+	{
+		std::cout << "\"Configuration\":{"
+			<< "\"Callsign\":\""    << config.cs      << "\","
+			<< "\"Version\":\""     << config.version << "\","
+			<< "\"Modules\":\""     << config.mods    << "\","
+			<< "\"EncryptMods\":\"" << config.emods   << "\","
+			<< "\"IPv4Address\":\"" << config.ipv4    << "\","
+			<< "\"IPv6Address\":\"" << config.ipv6    << "\","
+			<< "\"URL\":\""         << config.url     << "\","
+			<< "\"Country\":\""     << config.country << "\","
+			<< "\"Sponsor\":\""     << config.sponsor << "\","
+			<< "\"Email\":\""       << config.email   << "\","
+			<< "\"Port\":"          << config.port    << '}';
+		if (section == 'a') std::cout << ',';
+	}
 }
 
 static void PrintPeers()
 {
-	if ('p' == section)
-		std::cout << '{';
-	std::cout << "\"Peers\":[";
-	auto pit=peers.list.cbegin();
-	while (pit != peers.list.cend())
+	if (peers.timestamp)
 	{
-		std::cout <<
-			"{\"Callsign\":\""   << std::get<toUType(EMrefdPeerFields::Callsign)>(*pit) << "\"," <<
-			"\"Modules\":\""     << std::get<toUType(EMrefdPeerFields::Modules)>(*pit)  << "\"," <<
-			"\"ConnectTime\":\"" << TimeString(std::get<toUType(EMrefdPeerFields::ConnectTime)>(*pit)) << "\"}";
-		if (++pit != peers.list.end())
-			std::cout << ',';
+		std::cout << "\"Peers\":[";
+		auto pit=peers.list.cbegin();
+		while (pit != peers.list.cend())
+		{
+			std::cout <<
+				"{\"Callsign\":\""   << std::get<toUType(EMrefdPeerFields::Callsign)>(*pit) << "\"," <<
+				"\"Modules\":\""     << std::get<toUType(EMrefdPeerFields::Modules)>(*pit)  << "\"," <<
+				"\"ConnectTime\":\"" << TimeString(std::get<toUType(EMrefdPeerFields::ConnectTime)>(*pit)) << "\"}";
+			if (++pit != peers.list.end())
+				std::cout << ',';
+		}
+		std::cout << ']';
+		if (section =='a') std::cout << ',';
 	}
-	std::cout << ']';
-	if (section =='p')
-		std::cout << '}' << std::endl;
-	else
-		std::cout << ',';
 }
 
 static void PrintClients()
 {
-	if ('l' == section)
-		std::cout << '{';
-	std::cout << "\"Clients\":[";
-	auto cit = clients.list.cbegin();
-	while (cit != clients.list.cend())
+	if (clients.timestamp)
 	{
-		std::cout <<
-			"{\"Module\":\""       << std::get<toUType(EMrefdClientFields::Module)>(*cit)                    << "\"," <<
-			"\"Callsign\":\""      << std::get<toUType(EMrefdClientFields::Callsign)>(*cit)                  << "\"," <<
-			"\"IP\":\""            << std::get<toUType(EMrefdClientFields::Ip)>(*cit)                        << "\"," <<
-			"\"ConnectTime\":\""   << TimeString(std::get<toUType(EMrefdClientFields::ConnectTime)>(*cit))   << "\"," <<
-			"\"LastHeardTime\":\"" << TimeString(std::get<toUType(EMrefdClientFields::LastHeardTime)>(*cit)) << "\"}";
-		if (++cit != clients.list.cend())
-			std::cout << ',';
+		std::cout << "\"Clients\":[";
+		auto cit = clients.list.cbegin();
+		while (cit != clients.list.cend())
+		{
+			std::cout <<
+				"{\"Module\":\""       << std::get<toUType(EMrefdClientFields::Module)>(*cit)                    << "\"," <<
+				"\"Callsign\":\""      << std::get<toUType(EMrefdClientFields::Callsign)>(*cit)                  << "\"," <<
+				"\"IP\":\""            << std::get<toUType(EMrefdClientFields::Ip)>(*cit)                        << "\"," <<
+				"\"ConnectTime\":\""   << TimeString(std::get<toUType(EMrefdClientFields::ConnectTime)>(*cit))   << "\"," <<
+				"\"LastHeardTime\":\"" << TimeString(std::get<toUType(EMrefdClientFields::LastHeardTime)>(*cit)) << "\"}";
+			if (++cit != clients.list.cend())
+				std::cout << ',';
+		}
+		std::cout << ']';
+		if (section == 'a') std::cout << ',';
 	}
-	std::cout << ']';
-	if (section == 'l')
-		std::cout << '}' << std::endl;
-	else
-		std::cout << ',';
 }
 
 static void PrintUsers()
 {
-	if ('u' == section)
-		std::cout << '{';
-	std::cout << "\"Users\":[";
-	auto uit = users.list.cbegin();
-	while (uit != users.list.cend())
+	if (users.timestamp)
 	{
-		std::cout <<
-			"{\"Source\":\""       << std::get<toUType(EMrefdUserFields::Source)>(*uit)                    << "\"," <<
-			"\"Destination\":\""   << std::get<toUType(EMrefdUserFields::Destination)>(*uit)               << "\"," <<
-			"\"Reflector\":\""     << std::get<toUType(EMrefdUserFields::Reflector)>(*uit)                 << "\"," <<
-			"\"LastHeardTime\":\"" << TimeString(std::get<toUType(EMrefdUserFields::LastHeardTime)>(*uit)) << "\"}";
-		if (++uit != users.list.cend())
-			std::cout << ',';
+		std::cout << "\"Users\":[";
+		auto uit = users.list.cbegin();
+		while (uit != users.list.cend())
+		{
+			std::cout <<
+				"{\"Source\":\""       << std::get<toUType(EMrefdUserFields::Source)>(*uit)                    << "\"," <<
+				"\"Destination\":\""   << std::get<toUType(EMrefdUserFields::Destination)>(*uit)               << "\"," <<
+				"\"Reflector\":\""     << std::get<toUType(EMrefdUserFields::Reflector)>(*uit)                 << "\"," <<
+				"\"LastHeardTime\":\"" << TimeString(std::get<toUType(EMrefdUserFields::LastHeardTime)>(*uit)) << "\"}";
+			if (++uit != users.list.cend())
+				std::cout << ',';
+		}
+		std::cout << ']';
 	}
-	std::cout << ']';
-	std::cout << '}' << std::endl;
 }
 
 static void Usage(std::ostream &ostr, const char *comname)
@@ -323,6 +318,7 @@ int main(int argc, char *argv[])
 		cv.wait(lck);
 	}
 
+	std::cout << '{';
 	switch (section)
 	{
 		case 'c':
@@ -346,10 +342,9 @@ int main(int argc, char *argv[])
 				PrintUsers();
 				break;
 			}
-			else
-				std::cout << "{}" << std::endl;
 			break;
 	}
+	std::cout << '}' << std::endl;
 
 	node.join();
 
