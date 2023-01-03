@@ -78,6 +78,7 @@ static void FindPeers(dht::DhtRunner &node, const std::string &refcs, const char
 	// wait for node.get() to complete
 	while (! ready)
 	{
+		// a bit of a hack, but it works!
 		std::this_thread::sleep_for(std::chrono::milliseconds(100));
 	}
 
@@ -101,11 +102,11 @@ static void FindPeers(dht::DhtRunner &node, const std::string &refcs, const char
 		exit(EXIT_FAILURE);
 	}
 
-	// now, keep looking
+	// now, keep looking via this recursive call
 	for (const auto &pstr : Web[refcs])
 	{
-		if (Web.end() == Web.find(pstr))
-			FindPeers(node, pstr, module);
+		if (Web.end() == Web.find(pstr))	// if it hasn't already been added...
+			FindPeers(node, pstr, module);	// then add it!
 	}
 }
 
@@ -187,12 +188,14 @@ int main(int argc, char *argv[])
 	// start the spider
 	FindPeers(node, key, module);
 
-	// print the connect matrix
+	// make a list of all the reflectors which were found to be interconnected
+	// the list will be in alphabetical order because std::map is ordered by each item's key
 	std::list<std::string> group;
 	for (const auto &row : Web)
 	{
 		group.push_back(row.first);
 	}
+	// now print the connect matrix
 	const std::string space(9, ' ');
 	std::cout << space << std::string(2*Web.size()+1, '=') << std::endl;
 	for (const auto &row : group)

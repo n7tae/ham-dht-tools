@@ -49,7 +49,7 @@ For these target systems using the DHT, connection information is published and 
 
 #### Building and installing the OpenDHT library
 
-OpenDHT is available [here](https://github./com/savoirfairelinux/opendht.git). Building and installing instructions are in the [OpenDHT Wiki](https://github.com/savoirfairelinux/opendht/wiki/Build-the-library). Pascal support and proxy-server support (RESTinio) is not required for mvoice and so can be considered optional. With this in mind, this should work on Debian/Ubuntu-based systems:
+OpenDHT is available [here](https://github./com/savoirfairelinux/opendht.git). Building and installing instructions are in the [OpenDHT Wiki](https://github.com/savoirfairelinux/opendht/wiki/Build-the-library). Pascal support and proxy-server support (RESTinio) is not required for these tools and so can be considered optional. With this in mind, this should work on Debian/Ubuntu-based systems:
 
 ```bash
 # Install OpenDHT dependencies
@@ -66,9 +66,9 @@ make
 sudo make install
 ```
 
-Please note that there is no easy way to uninstall OpenDHT once it's been installed. However, it is based on static header files and libraries and doesn't use any resouces except for a small amount of disk space.
+See the wiki in the opendht repo if you are interested in retaining either of these. Please note that there is no easy way to uninstall OpenDHT once it's been installed. However, it is based on static header files and libraries and doesn't use any resouces except for a small amount of disk space.
 
-## Building the DVIN tools
+## Building the tools
 
 After the OpenDHT library has been installed, clone and make the tools:
 
@@ -77,3 +77,11 @@ git clone https://github.com/n7tae/dvin-tools.git
 cd dvin-tools
 make
 ```
+
+## Installing the tools
+
+To install, do `make install` and each tool will be copied to `$(BINDIR)` defined in the Makefile. To install to a different location, you can copy `Makefile` to `makefile`, modify the definition of `BINDIR` and then do `make install`, but it may be easier to just copy the executables to your desired folder manually.
+
+## Running a tool
+
+All command line tools will print a usage message if you don't supply any arguments. You cannot run these tools on a machine that has an application that is already using UDP port 17171, like *mrefd*, or *mvoice*.
