@@ -33,16 +33,21 @@ ifeq ($(debug), true)
 CFLAGS += -ggdb3
 endif
 
+all : dht-get dht-spider
+
 dht-get : dht-get.cpp
 	$(CXX) $(CFLAGS) -o $@ $^ -pthread -lopendht
 
+dht-spider : dht-spider.cpp
+	$(CXX) $(CFLAGS) -o $@ $^ -pthread -lopendht
+
 clean :
-	$(RM) *.o *.d dht-get
+	$(RM) *.o *.d dht-get dht-spider
 
 -include $(DEPS)
 
 install :
-	cp -f dvin-get $(BINDIR)
+	cp -f dht-{get,spider} $(BINDIR)
 
 uninstall :
-	rm -f $(CFGDIR)/dvin-get
+	rm -f $(CFGDIR)/dht-{get,spider}

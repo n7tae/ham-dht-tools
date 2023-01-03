@@ -1,4 +1,5 @@
 *.d
 *.o
 .vscode
-*-get
+dht-get
+dht-spider

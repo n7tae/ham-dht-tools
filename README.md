@@ -4,7 +4,7 @@ Tools for finding data on the Digital Voice Information Network (DVIN), using th
 
 ## Tools
 
-So far there is only one tool, serveral more are planned.
+So far there are two tools, serveral more are planned.
 
 ### dht-get
 
@@ -18,6 +18,23 @@ So far there is only one tool, serveral more are planned.
 Command lines options allow you specify a spection section, or, if you don't specify a specific section, all sections will be printed. Other options allow you to bootstrap into the DVIN at any node already connected to the DVIN. If you don't specify a bootstrap, *dht-get* will try to bootstrap from a default node. Other options allow you to control how times are displayed (local time or GMT) and whether you want a human readable output, or a JSON output.
 
 To see how *dht-get* is used, type `./dht-get` and it will print a usage message.
+
+### dht-spider
+
+*dht-spider* is a command line tool that will *walk* the dht network when pointed to a specific module of a reflector. It will follow interlinked reflectors until all connected reflectors can be listed in a simple diagram. Here is a hypthetical result when probing Module A of a small interlinked system:
+
+```bash
+someone@somesystem:~$ ./dht-spider m17-mmm a
+         =======
+M17-AAA | =   + | AAA
+M17-MMM |   = + | MMM
+M17-ZZZ | + + = | ZZZ
+         =======
+          A M Z
+          A M Z
+          A M Z
+```
+Here, three reflectors (M17-AAA, M17-MMM and M17-ZZZ) are sharing module A, but there is a problem: ZZZ is interlinked to both AAA and MMM, but AAA is not interlinked with MMM. This means that users keying up on AAA won't be heard by users on MMM and *vis versa*.
 
 ## Required packages
 
