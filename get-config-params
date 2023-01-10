@@ -1,0 +1,46 @@
+#!/bin/bash
+
+if (( $# != 3 )); then
+	echo Usage: "$0 reflector module (c|e|p|s|u|v|4|6)"
+	exit 1
+fi
+
+p=${3,,}
+
+if [[ "$p" == c* ]]; then
+	p='Country'
+elif [[ "$p" == e* ]]; then
+	p='Email'
+elif [[ '$p' == p* ]]; then
+	p='Port'
+elif [[ '$p' == s* ]]; then
+	p='Sponsor'
+elif [[ '$p' == u* ]]; then
+	p='URL'
+elif [[ "$p" == v* ]]; then
+	p='Version'
+elif [[ "$p" == 4* ]]; then
+	p='IPv4Address'
+elif [[ "$p" == 6* ]]; then
+	p='IPv6Address'
+else
+	echo "'$3' is not regcognized! Please use one of:"
+	echo "c (for Country)"
+	echo "e (for Email)"
+	echo "p (for Port)"
+	echo "s (for Sponsor)"
+	echo "u (for URL)"
+	echo "v (for Version)"
+	echo "4 (for IPv4Address)"
+	echo "6 (for IPv6Address)"
+	exit 2
+fi
+
+reflectors=( `./dht-spider -j $1 $2 | jq .Peers | jq --raw-output .[]` )
+
+for r in ${reflectors[*]}
+do
+	echo $r `./dht-get -sc $r | jq --raw-output .Configuration.$p`
+done
+
+exit 0

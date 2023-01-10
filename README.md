@@ -36,6 +36,10 @@ M17-ZZZ | + + = | ZZZ
 ```
 Here, three reflectors (M17-AAA, M17-MMM and M17-ZZZ) are sharing module A, but there is a problem: ZZZ is interlinked to both AAA and MMM, but AAA is not interlinked with MMM. This means that users keying up on AAA won't be heard by users on MMM and *vis versa*.
 
+### get-config-params
+
+*get-config-params* is a simple bash script that uses both *dht-spider* and *dht-get* to print most any configuration parameter for all the reflectors found with *dht-spider*.
+
 ## Required packages
 
 Several packages are needed;
