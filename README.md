@@ -4,7 +4,7 @@ Tools for finding data on the Digital Voice Information Network (DVIN), using th
 
 ## Tools
 
-So far there are two tools, serveral more are planned.
+So far there are three tools, serveral more are planned.
 
 ### dht-get
 
