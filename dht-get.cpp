@@ -48,10 +48,10 @@ static const char *TimeString(const std::time_t tt)
 
 static void PrintConfig()
 {
+	std::cout << "\"Configuration\":{";
 	if (config.timestamp)
 	{
-		std::cout << "\"Configuration\":{"
-			<< "\"Callsign\":\""    << config.cs      << "\","
+		std::cout << "\"Callsign\":\""    << config.cs      << "\","
 			<< "\"Version\":\""     << config.version << "\","
 			<< "\"Modules\":\""     << config.mods    << "\","
 			<< "\"EncryptMods\":\"" << config.emods   << "\","
@@ -61,71 +61,63 @@ static void PrintConfig()
 			<< "\"Country\":\""     << config.country << "\","
 			<< "\"Sponsor\":\""     << config.sponsor << "\","
 			<< "\"Email\":\""       << config.email   << "\","
-			<< "\"Port\":"          << config.port    << '}';
-		if (section == 'a') std::cout << ',';
+			<< "\"Port\":"          << config.port;
 	}
+	std::cout << '}';
+	if (section == 'a') std::cout << ',';
 }
 
 static void PrintPeers()
 {
-	if (peers.timestamp)
+	std::cout << "\"Peers\":[";
+	auto pit=peers.list.cbegin();
+	while (pit != peers.list.cend())
 	{
-		std::cout << "\"Peers\":[";
-		auto pit=peers.list.cbegin();
-		while (pit != peers.list.cend())
-		{
-			std::cout <<
-				"{\"Callsign\":\""   << std::get<toUType(EMrefdPeerFields::Callsign)>(*pit) << "\"," <<
-				"\"Modules\":\""     << std::get<toUType(EMrefdPeerFields::Modules)>(*pit)  << "\"," <<
-				"\"ConnectTime\":\"" << TimeString(std::get<toUType(EMrefdPeerFields::ConnectTime)>(*pit)) << "\"}";
-			if (++pit != peers.list.end())
-				std::cout << ',';
-		}
-		std::cout << ']';
-		if (section =='a') std::cout << ',';
+		std::cout <<
+			"{\"Callsign\":\""   << std::get<toUType(EMrefdPeerFields::Callsign)>(*pit) << "\"," <<
+			"\"Modules\":\""     << std::get<toUType(EMrefdPeerFields::Modules)>(*pit)  << "\"," <<
+			"\"ConnectTime\":\"" << TimeString(std::get<toUType(EMrefdPeerFields::ConnectTime)>(*pit)) << "\"}";
+		if (++pit != peers.list.end())
+			std::cout << ',';
 	}
+	std::cout << ']';
+	if (section =='a') std::cout << ',';
 }
 
 static void PrintClients()
 {
-	if (clients.timestamp)
+	std::cout << "\"Clients\":[";
+	auto cit = clients.list.cbegin();
+	while (cit != clients.list.cend())
 	{
-		std::cout << "\"Clients\":[";
-		auto cit = clients.list.cbegin();
-		while (cit != clients.list.cend())
-		{
-			std::cout <<
-				"{\"Module\":\""       << std::get<toUType(EMrefdClientFields::Module)>(*cit)                    << "\"," <<
-				"\"Callsign\":\""      << std::get<toUType(EMrefdClientFields::Callsign)>(*cit)                  << "\"," <<
-				"\"IP\":\""            << std::get<toUType(EMrefdClientFields::Ip)>(*cit)                        << "\"," <<
-				"\"ConnectTime\":\""   << TimeString(std::get<toUType(EMrefdClientFields::ConnectTime)>(*cit))   << "\"," <<
-				"\"LastHeardTime\":\"" << TimeString(std::get<toUType(EMrefdClientFields::LastHeardTime)>(*cit)) << "\"}";
-			if (++cit != clients.list.cend())
-				std::cout << ',';
-		}
-		std::cout << ']';
-		if (section == 'a') std::cout << ',';
+		std::cout <<
+			"{\"Module\":\""       << std::get<toUType(EMrefdClientFields::Module)>(*cit)                    << "\"," <<
+			"\"Callsign\":\""      << std::get<toUType(EMrefdClientFields::Callsign)>(*cit)                  << "\"," <<
+			"\"IP\":\""            << std::get<toUType(EMrefdClientFields::Ip)>(*cit)                        << "\"," <<
+			"\"ConnectTime\":\""   << TimeString(std::get<toUType(EMrefdClientFields::ConnectTime)>(*cit))   << "\"," <<
+			"\"LastHeardTime\":\"" << TimeString(std::get<toUType(EMrefdClientFields::LastHeardTime)>(*cit)) << "\"}";
+		if (++cit != clients.list.cend())
+			std::cout << ',';
 	}
+	std::cout << ']';
+	if (section == 'a') std::cout << ',';
 }
 
 static void PrintUsers()
 {
-	if (users.timestamp)
+	std::cout << "\"Users\":[";
+	auto uit = users.list.cbegin();
+	while (uit != users.list.cend())
 	{
-		std::cout << "\"Users\":[";
-		auto uit = users.list.cbegin();
-		while (uit != users.list.cend())
-		{
-			std::cout <<
-				"{\"Source\":\""       << std::get<toUType(EMrefdUserFields::Source)>(*uit)                    << "\"," <<
-				"\"Destination\":\""   << std::get<toUType(EMrefdUserFields::Destination)>(*uit)               << "\"," <<
-				"\"Reflector\":\""     << std::get<toUType(EMrefdUserFields::Reflector)>(*uit)                 << "\"," <<
-				"\"LastHeardTime\":\"" << TimeString(std::get<toUType(EMrefdUserFields::LastHeardTime)>(*uit)) << "\"}";
-			if (++uit != users.list.cend())
-				std::cout << ',';
-		}
-		std::cout << ']';
+		std::cout <<
+			"{\"Source\":\""       << std::get<toUType(EMrefdUserFields::Source)>(*uit)                    << "\"," <<
+			"\"Destination\":\""   << std::get<toUType(EMrefdUserFields::Destination)>(*uit)               << "\"," <<
+			"\"Reflector\":\""     << std::get<toUType(EMrefdUserFields::Reflector)>(*uit)                 << "\"," <<
+			"\"LastHeardTime\":\"" << TimeString(std::get<toUType(EMrefdUserFields::LastHeardTime)>(*uit)) << "\"}";
+		if (++uit != users.list.cend())
+			std::cout << ',';
 	}
+	std::cout << ']';
 }
 
 static void Usage(std::ostream &ostr, const char *comname)
@@ -267,7 +259,7 @@ int main(int argc, char *argv[])
 						if (0 == v->user_type.compare("mrefd-clients-1"))
 						{
 							auto rdat = dht::Value::unpack<SMrefdClients1>(*v);
-							if (rdat.timestamp > peers.timestamp)
+							if (rdat.timestamp > clients.timestamp)
 							{
 								clients = dht::Value::unpack<SMrefdClients1>(*v);
 							} else if (rdat.timestamp==clients.timestamp)
