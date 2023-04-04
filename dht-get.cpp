@@ -23,6 +23,7 @@
 #include <condition_variable>
 
 #include "mrefd-dht-values.h"
+#include "urfd-dht-values.h"
 
 static bool running = true;
 static std::condition_variable cv;
@@ -31,10 +32,16 @@ static char section = 'a';
 static bool use_local = false;
 static const std::string default_bs("xrf757.openquad.net");
 static dht::Where w;
-static SMrefdConfig1  config;
-static SMrefdPeers1   peers;
-static SMrefdClients1 clients;
-static SMrefdUsers1   users;
+static SMrefdConfig1  mrefdConfig;
+static SMrefdPeers1   mrefdPeers;
+static SMrefdClients1 mrefdClients;
+static SMrefdUsers1   mrefdUsers;
+static SUrfdConfig1   urfdConfig;
+static SUrfdPeers1    urfdPeers;
+static SUrfdClients1  urfdClients;
+static SUrfdUsers1    urfdUsers;
+
+enum class ENodeType { urfd, mrefd };
 
 static const char *TimeString(const std::time_t tt)
 {
@@ -46,49 +53,112 @@ static const char *TimeString(const std::time_t tt)
 	return str;
 }
 
-static void PrintConfig()
+static void PrintMrefdConfig()
 {
 	std::cout << "\"Configuration\":{";
-	if (config.timestamp)
+	if (mrefdConfig.timestamp)
 	{
-		std::cout << "\"Callsign\":\""    << config.cs      << "\","
-			<< "\"Version\":\""     << config.version << "\","
-			<< "\"Modules\":\""     << config.mods    << "\","
-			<< "\"EncryptMods\":\"" << config.emods   << "\","
-			<< "\"IPv4Address\":\"" << config.ipv4    << "\","
-			<< "\"IPv6Address\":\"" << config.ipv6    << "\","
-			<< "\"URL\":\""         << config.url     << "\","
-			<< "\"Country\":\""     << config.country << "\","
-			<< "\"Sponsor\":\""     << config.sponsor << "\","
-			<< "\"Email\":\""       << config.email   << "\","
-			<< "\"Port\":"          << config.port;
+		std::cout << "\"Callsign\":\""    << mrefdConfig.cs      << "\","
+			<< "\"Version\":\""     << mrefdConfig.version << "\","
+			<< "\"Modules\":\""     << mrefdConfig.mods    << "\","
+			<< "\"EncryptMods\":\"" << mrefdConfig.emods   << "\","
+			<< "\"IPv4Address\":\"" << mrefdConfig.ipv4    << "\","
+			<< "\"IPv6Address\":\"" << mrefdConfig.ipv6    << "\","
+			<< "\"URL\":\""         << mrefdConfig.url     << "\","
+			<< "\"Country\":\""     << mrefdConfig.country << "\","
+			<< "\"Sponsor\":\""     << mrefdConfig.sponsor << "\","
+			<< "\"Email\":\""       << mrefdConfig.email   << "\","
+			<< "\"Port\":"          << mrefdConfig.port;
 	}
 	std::cout << '}';
 	if (section == 'a') std::cout << ',';
 }
 
-static void PrintPeers()
+static void PrintUrfdConfig()
+{
+	std::cout << "\"Configuration\":{";
+	if (urfdConfig.timestamp)
+	{
+		std::cout
+			<< "\"Callsign\":\""           << urfdConfig.cs      << "\","
+			<< "\"Version\":\""            << urfdConfig.version << "\","
+			<< "\"Modules\":\""            << urfdConfig.mods    << "\","
+			<< "\"TranscodedModules\":\""  << urfdConfig.tcmods  << "\",";
+			for (auto c : urfdConfig.mods)
+			{
+				std::cout << "\"Description" << c << "\":\"" << urfdConfig.description[c-'A'] << "\",";
+			}
+		std::cout
+			<< "\"IPv4Address\":\""        << urfdConfig.ipv4                               << "\","
+			<< "\"IPv6Address\":\""        << urfdConfig.ipv6                               << "\","
+			<< "\"URL\":\""                << urfdConfig.url                                << "\","
+			<< "\"Country\":\""            << urfdConfig.country                            << "\","
+			<< "\"Sponsor\":\""            << urfdConfig.sponsor                            << "\","
+			<< "\"Email\":\""              << urfdConfig.email                              << "\","
+			<< "\"Modules\":\""            << urfdConfig.mods                               << "\","
+			<< "\"G3Enable\":"             << (urfdConfig.g3enabled ? "true" : "false")     << ","
+			<< "\"DCSPort\":"              << urfdConfig.port[toUType(EUrfdPorts::dcs)]     << ","
+			<< "\"DExtraPort\":"           << urfdConfig.port[toUType(EUrfdPorts::dextra)]  << ","
+			<< "\"DMRPlusPort\":"          << urfdConfig.port[toUType(EUrfdPorts::dmrplus)] << ","
+			<< "\"DPlusPort\":"            << urfdConfig.port[toUType(EUrfdPorts::dplus)]   << ","
+			<< "\"M17Port\":"              << urfdConfig.port[toUType(EUrfdPorts::m17)]     << ","
+			<< "\"MMDVMPort\":"            << urfdConfig.port[toUType(EUrfdPorts::mmdvm)]   << ","
+			<< "\"NXDNPort\":"             << urfdConfig.port[toUType(EUrfdPorts::nxdn)]    << ","
+			<< "\"NXDNAutoLinkModule\":\"" << urfdConfig.almod[toUType(EUrfdAlMod::nxdn)]   << "\","
+			<< "\"NXDNReflectorID\":"      << urfdConfig.refid[toUType(EUrfdRefId::nxdn)]   << ","
+			<< "\"P25Port\":"              << urfdConfig.port[toUType(EUrfdPorts::p25)]     << ","
+			<< "\"P25AutoLinkModule\":\""  << urfdConfig.almod[toUType(EUrfdAlMod::p25)]    << "\","
+			<< "\"P25ReflectorID\":"       << urfdConfig.refid[toUType(EUrfdRefId::p25)]    << ","
+			<< "\"URFPort\":"              << urfdConfig.port[toUType(EUrfdPorts::urf)]     << ","
+			<< "\"YSFPort\":"              << urfdConfig.port[toUType(EUrfdPorts::ysf)]     << ","
+			<< "\"YSFPort\":"              << urfdConfig.port[toUType(EUrfdPorts::ysf)]     << ","
+			<< "\"YSFAutoLinkModule\":\""  << urfdConfig.almod[toUType(EUrfdAlMod::ysf)]    << "\","
+			<< "\"YSFDefaultRxFreq\":"     << urfdConfig.ysffreq[toUType(EUrfdTxRx::rx)]    << ","
+			<< "\"YSFDefaultTxFreq\":"     << urfdConfig.ysffreq[toUType(EUrfdTxRx::tx)];
+	}
+	std::cout << '}';
+	if (section == 'a') std::cout << ',';
+}
+
+static void PrintMrefdPeers()
 {
 	std::cout << "\"Peers\":[";
-	auto pit=peers.list.cbegin();
-	while (pit != peers.list.cend())
+	auto pit=mrefdPeers.list.cbegin();
+	while (pit != mrefdPeers.list.cend())
 	{
 		std::cout <<
 			"{\"Callsign\":\""   << std::get<toUType(EMrefdPeerFields::Callsign)>(*pit) << "\"," <<
 			"\"Modules\":\""     << std::get<toUType(EMrefdPeerFields::Modules)>(*pit)  << "\"," <<
 			"\"ConnectTime\":\"" << TimeString(std::get<toUType(EMrefdPeerFields::ConnectTime)>(*pit)) << "\"}";
-		if (++pit != peers.list.end())
+		if (++pit != mrefdPeers.list.end())
 			std::cout << ',';
 	}
 	std::cout << ']';
 	if (section =='a') std::cout << ',';
 }
 
-static void PrintClients()
+static void PrintUrfdPeers()
+{
+	std::cout << "\"Peers\":[";
+	auto pit=urfdPeers.list.cbegin();
+	while (pit != urfdPeers.list.cend())
+	{
+		std::cout <<
+			"{\"Callsign\":\""   << std::get<toUType(EUrfdPeerFields::Callsign)>(*pit) << "\"," <<
+			"\"Modules\":\""     << std::get<toUType(EUrfdPeerFields::Modules)>(*pit)  << "\"," <<
+			"\"ConnectTime\":\"" << TimeString(std::get<toUType(EUrfdPeerFields::ConnectTime)>(*pit)) << "\"}";
+		if (++pit != urfdPeers.list.end())
+			std::cout << ',';
+	}
+	std::cout << ']';
+	if (section =='a') std::cout << ',';
+}
+
+static void PrintMrefdClients()
 {
 	std::cout << "\"Clients\":[";
-	auto cit = clients.list.cbegin();
-	while (cit != clients.list.cend())
+	auto cit = mrefdClients.list.cbegin();
+	while (cit != mrefdClients.list.cend())
 	{
 		std::cout <<
 			"{\"Module\":\""       << std::get<toUType(EMrefdClientFields::Module)>(*cit)                    << "\"," <<
@@ -96,25 +166,62 @@ static void PrintClients()
 			"\"IP\":\""            << std::get<toUType(EMrefdClientFields::Ip)>(*cit)                        << "\"," <<
 			"\"ConnectTime\":\""   << TimeString(std::get<toUType(EMrefdClientFields::ConnectTime)>(*cit))   << "\"," <<
 			"\"LastHeardTime\":\"" << TimeString(std::get<toUType(EMrefdClientFields::LastHeardTime)>(*cit)) << "\"}";
-		if (++cit != clients.list.cend())
+		if (++cit != mrefdClients.list.cend())
 			std::cout << ',';
 	}
 	std::cout << ']';
 	if (section == 'a') std::cout << ',';
 }
 
-static void PrintUsers()
+static void PrintUrfdClients()
+{
+	std::cout << "\"Clients\":[";
+	auto cit = urfdClients.list.cbegin();
+	while (cit != urfdClients.list.cend())
+	{
+		std::cout <<
+			"{\"Module\":\""       << std::get<toUType(EUrfdClientFields::Module)>(*cit)                    << "\"," <<
+			"\"Callsign\":\""      << std::get<toUType(EUrfdClientFields::Callsign)>(*cit)                  << "\"," <<
+			"\"IP\":\""            << std::get<toUType(EUrfdClientFields::Ip)>(*cit)                        << "\"," <<
+			"\"ConnectTime\":\""   << TimeString(std::get<toUType(EUrfdClientFields::ConnectTime)>(*cit))   << "\"," <<
+			"\"LastHeardTime\":\"" << TimeString(std::get<toUType(EUrfdClientFields::LastHeardTime)>(*cit)) << "\"}";
+		if (++cit != urfdClients.list.cend())
+			std::cout << ',';
+	}
+	std::cout << ']';
+	if (section == 'a') std::cout << ',';
+}
+
+static void PrintMrefdUsers()
 {
 	std::cout << "\"Users\":[";
-	auto uit = users.list.cbegin();
-	while (uit != users.list.cend())
+	auto uit = mrefdUsers.list.cbegin();
+	while (uit != mrefdUsers.list.cend())
 	{
 		std::cout <<
 			"{\"Source\":\""       << std::get<toUType(EMrefdUserFields::Source)>(*uit)                    << "\"," <<
 			"\"Destination\":\""   << std::get<toUType(EMrefdUserFields::Destination)>(*uit)               << "\"," <<
 			"\"Reflector\":\""     << std::get<toUType(EMrefdUserFields::Reflector)>(*uit)                 << "\"," <<
 			"\"LastHeardTime\":\"" << TimeString(std::get<toUType(EMrefdUserFields::LastHeardTime)>(*uit)) << "\"}";
-		if (++uit != users.list.cend())
+		if (++uit != mrefdUsers.list.cend())
+			std::cout << ',';
+	}
+	std::cout << ']';
+}
+
+static void PrintUrfdUsers()
+{
+	std::cout << "\"Users\":[";
+	auto uit = urfdUsers.list.cbegin();
+	while (uit != urfdUsers.list.cend())
+	{
+		std::cout <<
+			"{\"Callsign\":\""     << std::get<toUType(EUrfdUserFields::Callsign)>(*uit)                  << "\"," <<
+			"\"OnModule\":\""      << std::get<toUType(EUrfdUserFields::OnModule)>(*uit)                  << "\"," <<
+			"\"ViaNode\":\""       << std::get<toUType(EUrfdUserFields::ViaNode)>(*uit)                   << "\"," <<
+			"\"ViaPeer\":\""       << std::get<toUType(EUrfdUserFields::ViaPeer)>(*uit)                   << "\"," <<
+			"\"LastHeardTime\":\"" << TimeString(std::get<toUType(EUrfdUserFields::LastHeardTime)>(*uit)) << "\"}";
+		if (++uit != urfdUsers.list.cend())
 			std::cout << ',';
 	}
 	std::cout << ']';
@@ -200,25 +307,62 @@ int main(int argc, char *argv[])
 	const std::string key(argv[optind]);
 	auto keyhash = dht::InfoHash::get(key);
 
-	config.timestamp = peers.timestamp = clients.timestamp = users.timestamp = 0;
+	mrefdConfig.timestamp = mrefdPeers.timestamp = mrefdClients.timestamp = mrefdUsers.timestamp = 0;
+	urfdConfig.timestamp  = urfdPeers.timestamp  = urfdClients.timestamp  = urfdUsers.timestamp  = 0;
 
-	switch (section)
+	ENodeType keytype;
+	if (0 == key.compare(0, 4, "M17-"))
+		keytype = ENodeType::mrefd;
+	else if (0 == key.compare(0, 3, "URF"))
+		keytype = ENodeType::urfd;
+	else
 	{
-		case 'c':
-		w.id(toUType(EMrefdValueID::Config));
-		break;
+		std::cerr << "Don't know how to get '" << key << "'" << std::endl;
+		return EXIT_FAILURE;
+	}
 
-		case 'p':
-		w.id(toUType(EMrefdValueID::Peers));
-		break;
+	switch (keytype)
+	{
+		case ENodeType::mrefd:
+			switch (section)
+			{
+				case 'c':
+				w.id(toUType(EMrefdValueID::Config));
+				break;
 
-		case 'l':
-		w.id(toUType(EMrefdValueID::Clients));
-		break;
+				case 'p':
+				w.id(toUType(EMrefdValueID::Peers));
+				break;
 
-		case 'u':
-		w.id(toUType(EMrefdValueID::Users));
-		break;
+				case 'l':
+				w.id(toUType(EMrefdValueID::Clients));
+				break;
+
+				case 'u':
+				w.id(toUType(EMrefdValueID::Users));
+				break;
+			}
+			break;
+		case ENodeType::urfd:
+			switch (section)
+			{
+				case 'c':
+				w.id(toUType(EUrfdValueID::Config));
+				break;
+
+				case 'p':
+				w.id(toUType(EUrfdValueID::Peers));
+				break;
+
+				case 'l':
+				w.id(toUType(EUrfdValueID::Clients));
+				break;
+
+				case 'u':
+				w.id(toUType(EUrfdValueID::Users));
+				break;
+			}
+			break;
 	}
 
 	std::string name("TestGet");
@@ -226,83 +370,167 @@ int main(int argc, char *argv[])
 	dht::DhtRunner node;
 	node.run(17171, dht::crypto::generateIdentity(name));
 	node.bootstrap(bs, "17171");
-	node.get(
-		keyhash,
-		[](const std::shared_ptr<dht::Value> &v) {
-			if (v->checkSignature())
-			{
-				switch (v->id)
-				{
-					case toUType(EMrefdValueID::Config):
-						if (0 == v->user_type.compare("mrefd-config-1"))
+	switch (keytype)
+	{
+		case ENodeType::mrefd:
+			node.get(
+				keyhash,
+				[](const std::shared_ptr<dht::Value> &v) {
+					if (v->checkSignature())
+					{
+						switch (v->id)
 						{
-							auto rdat = dht::Value::unpack<SMrefdConfig1>(*v);
-							if (rdat.timestamp > config.timestamp)
-								config = dht::Value::unpack<SMrefdConfig1>(*v);
+							case toUType(EMrefdValueID::Config):
+								if (0 == v->user_type.compare("mrefd-config-1"))
+								{
+									auto rdat = dht::Value::unpack<SMrefdConfig1>(*v);
+									if (rdat.timestamp > mrefdConfig.timestamp)
+										mrefdConfig = dht::Value::unpack<SMrefdConfig1>(*v);
+								}
+								break;
+							case toUType(EMrefdValueID::Peers):
+								if (0 == v->user_type.compare("mrefd-peers-1"))
+								{
+									auto rdat = dht::Value::unpack<SMrefdPeers1>(*v);
+									if (rdat.timestamp > mrefdPeers.timestamp)
+									{
+										mrefdPeers = dht::Value::unpack<SMrefdPeers1>(*v);
+									} else if (rdat.timestamp==mrefdPeers.timestamp)
+									{
+										if (rdat.sequence > mrefdPeers.sequence)
+											mrefdPeers = dht::Value::unpack<SMrefdPeers1>(*v);
+									}
+								}
+								break;
+							case toUType(EMrefdValueID::Clients):
+								if (0 == v->user_type.compare("mrefd-clients-1"))
+								{
+									auto rdat = dht::Value::unpack<SMrefdClients1>(*v);
+									if (rdat.timestamp > mrefdClients.timestamp)
+									{
+										mrefdClients = dht::Value::unpack<SMrefdClients1>(*v);
+									} else if (rdat.timestamp==mrefdClients.timestamp)
+									{
+										if (rdat.sequence > mrefdClients.sequence)
+											mrefdClients = dht::Value::unpack<SMrefdClients1>(*v);
+									}
+								}
+								break;
+							case toUType(EMrefdValueID::Users):
+								if (0 == v->user_type.compare("mrefd-users-1"))
+								{
+									auto rdat = dht::Value::unpack<SMrefdUsers1>(*v);
+									if (rdat.timestamp > mrefdPeers.timestamp)
+									{
+										mrefdUsers = dht::Value::unpack<SMrefdUsers1>(*v);
+									} else if (rdat.timestamp==mrefdUsers.timestamp)
+									{
+										if (rdat.sequence > mrefdUsers.sequence)
+											mrefdUsers = dht::Value::unpack<SMrefdUsers1>(*v);
+									}
+								}
+								break;
 						}
-						break;
-					case toUType(EMrefdValueID::Peers):
-						if (0 == v->user_type.compare("mrefd-peers-1"))
+					}
+					else
+					{
+						std::cout << "Value signature failed!" << std::endl;
+					}
+					return true;
+				},
+				[](bool success) {
+					if (! success)
+					{
+						std::cerr << "get() failed!" << std::endl;
+					}
+					std::unique_lock<std::mutex> lck(mtx);
+					running = false;
+					cv.notify_all();
+				},
+				{},	// empty filter
+				w
+			);
+			break;
+		case ENodeType::urfd:
+			node.get(
+				keyhash,
+				[](const std::shared_ptr<dht::Value> &v) {
+					if (v->checkSignature())
+					{
+						switch (v->id)
 						{
-							auto rdat = dht::Value::unpack<SMrefdPeers1>(*v);
-							if (rdat.timestamp > peers.timestamp)
-							{
-								peers = dht::Value::unpack<SMrefdPeers1>(*v);
-							} else if (rdat.timestamp==peers.timestamp)
-							{
-								if (rdat.sequence > peers.sequence)
-									peers = dht::Value::unpack<SMrefdPeers1>(*v);
-							}
+							case toUType(EUrfdValueID::Config):
+								if (0 == v->user_type.compare("urfd-config-1"))
+								{
+									auto rdat = dht::Value::unpack<SUrfdConfig1>(*v);
+									if (rdat.timestamp > urfdConfig.timestamp)
+										urfdConfig = dht::Value::unpack<SUrfdConfig1>(*v);
+								}
+								break;
+							case toUType(EUrfdValueID::Peers):
+								if (0 == v->user_type.compare("urfd-peers-1"))
+								{
+									auto rdat = dht::Value::unpack<SUrfdPeers1>(*v);
+									if (rdat.timestamp > urfdPeers.timestamp)
+									{
+										urfdPeers = dht::Value::unpack<SUrfdPeers1>(*v);
+									} else if (rdat.timestamp==urfdPeers.timestamp)
+									{
+										if (rdat.sequence > urfdPeers.sequence)
+											urfdPeers = dht::Value::unpack<SUrfdPeers1>(*v);
+									}
+								}
+								break;
+							case toUType(EUrfdValueID::Clients):
+								if (0 == v->user_type.compare("urfd-clients-1"))
+								{
+									auto rdat = dht::Value::unpack<SUrfdClients1>(*v);
+									if (rdat.timestamp > urfdClients.timestamp)
+									{
+										urfdClients = dht::Value::unpack<SUrfdClients1>(*v);
+									} else if (rdat.timestamp==urfdClients.timestamp)
+									{
+										if (rdat.sequence > urfdClients.sequence)
+											urfdClients = dht::Value::unpack<SUrfdClients1>(*v);
+									}
+								}
+								break;
+							case toUType(EUrfdValueID::Users):
+								if (0 == v->user_type.compare("urfd-users-1"))
+								{
+									auto rdat = dht::Value::unpack<SUrfdUsers1>(*v);
+									if (rdat.timestamp > mrefdPeers.timestamp)
+									{
+										urfdUsers = dht::Value::unpack<SUrfdUsers1>(*v);
+									} else if (rdat.timestamp==urfdUsers.timestamp)
+									{
+										if (rdat.sequence > urfdUsers.sequence)
+											urfdUsers = dht::Value::unpack<SUrfdUsers1>(*v);
+									}
+								}
+								break;
 						}
-						break;
-					case toUType(EMrefdValueID::Clients):
-						if (0 == v->user_type.compare("mrefd-clients-1"))
-						{
-							auto rdat = dht::Value::unpack<SMrefdClients1>(*v);
-							if (rdat.timestamp > clients.timestamp)
-							{
-								clients = dht::Value::unpack<SMrefdClients1>(*v);
-							} else if (rdat.timestamp==clients.timestamp)
-							{
-								if (rdat.sequence > clients.sequence)
-									clients = dht::Value::unpack<SMrefdClients1>(*v);
-							}
-						}
-						break;
-					case toUType(EMrefdValueID::Users):
-						if (0 == v->user_type.compare("mrefd-users-1"))
-						{
-							auto rdat = dht::Value::unpack<SMrefdUsers1>(*v);
-							if (rdat.timestamp > peers.timestamp)
-							{
-								users = dht::Value::unpack<SMrefdUsers1>(*v);
-							} else if (rdat.timestamp==users.timestamp)
-							{
-								if (rdat.sequence > users.sequence)
-									users = dht::Value::unpack<SMrefdUsers1>(*v);
-							}
-						}
-						break;
-				}
-			}
-			else
-			{
-				std::cout << "Value signature failed!" << std::endl;
-			}
-			return true;
-		},
-		[](bool success) {
-			if (! success)
-			{
-				std::cerr << "get() failed!" << std::endl;
-			}
-			std::unique_lock<std::mutex> lck(mtx);
-			running = false;
-			cv.notify_all();
-		},
-		{},	// empty filter
-		w
-	);
+					}
+					else
+					{
+						std::cout << "Value signature failed!" << std::endl;
+					}
+					return true;
+				},
+				[](bool success) {
+					if (! success)
+					{
+						std::cerr << "get() failed!" << std::endl;
+					}
+					std::unique_lock<std::mutex> lck(mtx);
+					running = false;
+					cv.notify_all();
+				},
+				{},	// empty filter
+				w
+			);
+			break;
+	}
 
 	std::unique_lock<std::mutex> lck(mtx);
 	while (running)
@@ -314,25 +542,56 @@ int main(int argc, char *argv[])
 	switch (section)
 	{
 		case 'c':
-			PrintConfig();
+			switch (keytype)
+			{
+				case ENodeType::mrefd: PrintMrefdConfig(); break;
+				case ENodeType::urfd:  PrintUrfdConfig();  break;
+			}
 			break;
 		case 'p':
-			PrintPeers();
+			switch (keytype)
+			{
+				case ENodeType::mrefd: PrintMrefdPeers(); break;
+				case ENodeType::urfd:  PrintUrfdPeers();  break;
+			}
 			break;
 		case 'l':
-			PrintClients();
+			switch (keytype)
+			{
+				case ENodeType::mrefd: PrintMrefdClients(); break;
+				case ENodeType::urfd:  PrintUrfdClients();  break;
+			}
 			break;
 		case 'u':
-			PrintUsers();
+			switch (keytype)
+			{
+				case ENodeType::mrefd: PrintMrefdUsers(); break;
+				case ENodeType::urfd:  PrintUrfdUsers(); break;
+			}
 			break;
 		default:
-			if (config.timestamp)
+			switch (keytype)
 			{
-				PrintConfig();
-				PrintPeers();
-				PrintClients();
-				PrintUsers();
-				break;
+				case ENodeType::mrefd:
+					if (mrefdConfig.timestamp)
+					{
+						PrintMrefdConfig();
+						PrintMrefdPeers();
+						PrintMrefdClients();
+						PrintMrefdUsers();
+						break;
+					}
+					break;
+				case ENodeType::urfd:
+					if (urfdConfig.timestamp)
+					{
+						PrintUrfdConfig();
+						PrintUrfdPeers();
+						PrintUrfdClients();
+						PrintUrfdUsers();
+						break;
+					}
+					break;
 			}
 			break;
 	}

@@ -24,18 +24,20 @@
 #include <atomic>
 
 #include "mrefd-dht-values.h"
+#include "urfd-dht-values.h"
 
 static const std::string default_bs("xlx757.openquad.net");
 static dht::Where w;
-SMrefdPeers1 peers;
+SMrefdPeers1 mrefdPeers;
+SUrfdPeers1  urfdPeers;
 static std::map<std::string, std::set<std::string>> Web;
 static std::atomic<bool> ready;
 
-static void FindPeers(dht::DhtRunner &node, const std::string &refcs, const char module)
+static void FindPeers(dht::DhtRunner &node, const std::string &refcs, const char module, const bool isM17)
 {
-	peers.timestamp = 0;
-	peers.sequence = 0;
-	peers.list.clear();
+	mrefdPeers.timestamp = 0;
+	mrefdPeers.sequence = 0;
+	mrefdPeers.list.clear();
 	ready = false;
 	node.get(
 		dht::InfoHash::get(refcs),
@@ -43,19 +45,33 @@ static void FindPeers(dht::DhtRunner &node, const std::string &refcs, const char
 		{
 			if (v->checkSignature())
 			{
-				if (0 == v->user_type.compare("mrefd-peers-1"))
+				if (0 == v->user_type.compare("mrefd-mrefdPeers-1"))
 				{
 					auto rdat = dht::Value::unpack<SMrefdPeers1>(*v);
-					if (rdat.timestamp > peers.timestamp)
+					if (rdat.timestamp > mrefdPeers.timestamp)
 					{
-						peers = dht::Value::unpack<SMrefdPeers1>(*v);
+						mrefdPeers = dht::Value::unpack<SMrefdPeers1>(*v);
 					}
-					else if (rdat.timestamp == peers.timestamp)
+					else if (rdat.timestamp == mrefdPeers.timestamp)
 					{
-						if (rdat.sequence > peers.sequence)
-							peers = dht::Value::unpack<SMrefdPeers1>(*v);
+						if (rdat.sequence > mrefdPeers.sequence)
+							mrefdPeers = dht::Value::unpack<SMrefdPeers1>(*v);
 					}
 				}
+				else if (0 == v->user_type.compare("mrefd-mrefdPeers-1"))
+				{
+					auto rdat = dht::Value::unpack<SUrfdPeers1>(*v);
+					if (rdat.timestamp > urfdPeers.timestamp)
+					{
+						urfdPeers = dht::Value::unpack<SUrfdPeers1>(*v);
+					}
+					else if (rdat.timestamp == urfdPeers.timestamp)
+					{
+						if (rdat.sequence > urfdPeers.sequence)
+							urfdPeers = dht::Value::unpack<SUrfdPeers1>(*v);
+					}
+				}
+
 			}
 			else
 			{
@@ -84,15 +100,32 @@ static void FindPeers(dht::DhtRunner &node, const std::string &refcs, const char
 
 	// add the webnode to the map
 	std::set<std::string> peerset;
-	for (const auto &p : peers.list)
+	if (isM17)
 	{
-		const auto modules = std::get<toUType(EMrefdPeerFields::Modules)>(p);
-		if (std::string::npos != modules.find(module)) // add only if the peer is using this module
+		for (const auto &p : mrefdPeers.list)
 		{
-			const auto ref = std::get<toUType(EMrefdPeerFields::Callsign)>(p);
-			auto rval = peerset.insert(ref);
-			if (false == rval.second)
-				std::cout << "WARNING: " << ref << "could not be added to the " << refcs << " peers!" << std::endl;
+			const auto modules = std::get<toUType(EMrefdPeerFields::Modules)>(p);
+			if (std::string::npos != modules.find(module)) // add only if the peer is using this module
+			{
+				const auto ref = std::get<toUType(EMrefdPeerFields::Callsign)>(p);
+				auto rval = peerset.insert(ref);
+				if (false == rval.second)
+					std::cout << "WARNING: " << ref << "could not be added to the " << refcs << " mrefdPeers!" << std::endl;
+			}
+		}
+	}
+	else
+	{
+		for (const auto &p : urfdPeers.list)
+		{
+			const auto modules = std::get<toUType(EUrfdPeerFields::Modules)>(p);
+			if (std::string::npos != modules.find(module)) // add only if the peer is using this module
+			{
+				const auto ref = std::get<toUType(EUrfdPeerFields::Callsign)>(p);
+				auto rval = peerset.insert(ref);
+				if (false == rval.second)
+					std::cout << "WARNING: " << ref << "could not be added to the " << refcs << " urfdPeers!" << std::endl;
+			}
 		}
 	}
 	auto rval = Web.emplace(refcs, peerset);
@@ -106,7 +139,7 @@ static void FindPeers(dht::DhtRunner &node, const std::string &refcs, const char
 	for (const auto &pstr : Web[refcs])
 	{
 		if (Web.end() == Web.find(pstr))	// if it hasn't already been added...
-			FindPeers(node, pstr, module);	// then add it!
+			FindPeers(node, pstr, module, isM17);	// then add it!
 	}
 }
 
@@ -162,6 +195,7 @@ int main(int argc, char *argv[])
 		p++;
 	}
 	const std::string key(argv[optind]);
+	const auto isM17 = 0 == key.compare(0, 4, "M17-");
 
 	p = argv[++optind];
 	if (1 != std::strlen(p) || ! std::isalpha(*p))
@@ -183,10 +217,10 @@ int main(int argc, char *argv[])
 	std::cout << "Running node using name " << name << " and bootstrapping from " << bs << std::endl;
 
 	// set up the where condition
-	w.id(toUType(EMrefdValueID::Peers));
+	w.id(isM17 ? toUType(EMrefdValueID::Peers) : toUType(EUrfdValueID::Peers));
 
 	// start the spider
-	FindPeers(node, key, module);
+	FindPeers(node, key, module, isM17);
 
 	// make a list of all the reflectors which were found to be interconnected
 	// the list will be in alphabetical order because std::map is ordered by each item's key
