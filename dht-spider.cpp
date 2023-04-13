@@ -33,6 +33,21 @@ SUrfdPeers1  urfdPeers;
 static std::map<std::string, std::set<std::string>> Web;
 static std::atomic<bool> ready;
 
+static void Trim(std::string &s)
+{
+	while (! s.empty())
+	{
+		if (isspace(s.at(0)))
+			s.erase(0, 1);
+		else if (isspace(s.back()))
+		{
+			s.resize(s.size()-1);
+		}
+		else
+			break;
+	}
+}
+
 static void FindPeers(dht::DhtRunner &node, const std::string &refcs, const char module, const bool isM17)
 {
 	mrefdPeers.timestamp = 0;
@@ -45,7 +60,7 @@ static void FindPeers(dht::DhtRunner &node, const std::string &refcs, const char
 		{
 			if (v->checkSignature())
 			{
-				if (0 == v->user_type.compare("mrefd-mrefdPeers-1"))
+				if (0 == v->user_type.compare("mrefd-peers-1"))
 				{
 					auto rdat = dht::Value::unpack<SMrefdPeers1>(*v);
 					if (rdat.timestamp > mrefdPeers.timestamp)
@@ -58,7 +73,7 @@ static void FindPeers(dht::DhtRunner &node, const std::string &refcs, const char
 							mrefdPeers = dht::Value::unpack<SMrefdPeers1>(*v);
 					}
 				}
-				else if (0 == v->user_type.compare("mrefd-mrefdPeers-1"))
+				else if (0 == v->user_type.compare("urfd-peers-1"))
 				{
 					auto rdat = dht::Value::unpack<SUrfdPeers1>(*v);
 					if (rdat.timestamp > urfdPeers.timestamp)
@@ -107,7 +122,8 @@ static void FindPeers(dht::DhtRunner &node, const std::string &refcs, const char
 			const auto modules = std::get<toUType(EMrefdPeerFields::Modules)>(p);
 			if (std::string::npos != modules.find(module)) // add only if the peer is using this module
 			{
-				const auto ref = std::get<toUType(EMrefdPeerFields::Callsign)>(p);
+				auto ref = std::get<toUType(EMrefdPeerFields::Callsign)>(p);
+				Trim(ref);
 				auto rval = peerset.insert(ref);
 				if (false == rval.second)
 					std::cout << "WARNING: " << ref << "could not be added to the " << refcs << " mrefdPeers!" << std::endl;
@@ -121,7 +137,8 @@ static void FindPeers(dht::DhtRunner &node, const std::string &refcs, const char
 			const auto modules = std::get<toUType(EUrfdPeerFields::Modules)>(p);
 			if (std::string::npos != modules.find(module)) // add only if the peer is using this module
 			{
-				const auto ref = std::get<toUType(EUrfdPeerFields::Callsign)>(p);
+				auto ref = std::get<toUType(EUrfdPeerFields::Callsign)>(p);
+				Trim(ref);
 				auto rval = peerset.insert(ref);
 				if (false == rval.second)
 					std::cout << "WARNING: " << ref << "could not be added to the " << refcs << " urfdPeers!" << std::endl;
@@ -230,7 +247,7 @@ int main(int argc, char *argv[])
 		group.push_back(row.first);
 	}
 	// now print the connect matrix
-	const std::string space(9, ' ');
+	const std::string space(isM17 ? 9 : 8, ' ');
 	std::cout << space << std::string(2*Web.size()+1, '=') << std::endl;
 	for (const auto &row : group)
 	{
@@ -246,15 +263,16 @@ int main(int argc, char *argv[])
 				std::cout << ' ' << ((Web[row].end() == Web[row].find(col)) ? ' ' : '+');
 			}
 		}
-		std::cout << " | " << row.substr(4) << std::endl;
+		std::cout << " | " << row.substr(isM17 ? 4 : 3) << std::endl;
 	}
 	std::cout << space << std::string(2*Web.size()+1, '=') << std::endl;
-	for (int i=4; i<7; i++)
+	for (int i=0; i<3; i++)
 	{
 		std::cout << space;
 		for (const auto &ref : group)
 		{
-			std::cout << ' ' << ref.at(i);
+			int j = i + (isM17 ? 4 : 3);
+			std::cout << ' ' << ref.at(j);
 		}
 		std::cout << std::endl;
 	}
