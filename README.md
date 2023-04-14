@@ -1,6 +1,6 @@
-# dvin-tools
+# ham-dht-tools
 
-Tools for finding data on the Digital Voice Information Network (DVIN), using the OpenDHT, a Kademlia implementation of a distributed hash table network. These tools use the OpenDHT library to access information that exists on the DVIN. Systems on the DVIN publish important inforamation about their configuration and current environment.
+Tools for finding data on the Ham Distributed Hash Table (DHT). The Ham-DHT uses OpenDHT, a Kademlia implementation of a DHT network. These tools use the OpenDHT library to access information that exists on this network. Systems using this network publish important inforamation about their configuration and current state.
 
 ## Tools
 
@@ -88,4 +88,4 @@ To install, do `make install` and each tool will be copied to `$(BINDIR)` define
 
 ## Running a tool
 
-All command line tools will print a usage message if you don't supply any arguments. You cannot run these tools on a machine that has an application that is already using UDP port 17171, like *mrefd*, or *mvoice*.
+All command line tools will print a usage message if you don't supply any arguments. You cannot run these tools on a machine that has an application that is already using UDP port 17171, like *mrefd*, *urfd* or *mvoice*.
