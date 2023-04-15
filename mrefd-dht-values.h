@@ -72,8 +72,8 @@ struct SMrefdUsers1
 struct SMrefdConfig1
 {
 	std::time_t timestamp;
-	std::string cs, ipv4, ipv6, mods, emods, url, email, sponsor, country, version;
+	std::string callsign, ipv4addr, ipv6addr, modules, encryptedmods, url, email, sponsor, country, version;
 	uint16_t port;
 
-	MSGPACK_DEFINE(timestamp, cs, ipv4, ipv6, mods, emods, url, email, sponsor, country, version, port)
+	MSGPACK_DEFINE(timestamp, callsign, ipv4addr, ipv6addr, modules, encryptedmods, url, email, sponsor, country, version, port)
 };

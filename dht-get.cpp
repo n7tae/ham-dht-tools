@@ -58,16 +58,17 @@ static void PrintMrefdConfig()
 	std::cout << "\"Configuration\":{";
 	if (mrefdConfig.timestamp)
 	{
-		std::cout << "\"Callsign\":\""    << mrefdConfig.cs      << "\","
-			<< "\"Version\":\""     << mrefdConfig.version << "\","
-			<< "\"Modules\":\""     << mrefdConfig.mods    << "\","
-			<< "\"EncryptMods\":\"" << mrefdConfig.emods   << "\","
-			<< "\"IPv4Address\":\"" << mrefdConfig.ipv4    << "\","
-			<< "\"IPv6Address\":\"" << mrefdConfig.ipv6    << "\","
-			<< "\"URL\":\""         << mrefdConfig.url     << "\","
-			<< "\"Country\":\""     << mrefdConfig.country << "\","
-			<< "\"Sponsor\":\""     << mrefdConfig.sponsor << "\","
-			<< "\"Email\":\""       << mrefdConfig.email   << "\","
+		std::cout
+			<< "\"Callsign\":\""    << mrefdConfig.callsign      << "\","
+			<< "\"Version\":\""     << mrefdConfig.version       << "\","
+			<< "\"Modules\":\""     << mrefdConfig.modules       << "\","
+			<< "\"EncryptMods\":\"" << mrefdConfig.encryptedmods << "\","
+			<< "\"IPv4Address\":\"" << mrefdConfig.ipv4addr      << "\","
+			<< "\"IPv6Address\":\"" << mrefdConfig.ipv6addr      << "\","
+			<< "\"URL\":\""         << mrefdConfig.url           << "\","
+			<< "\"Country\":\""     << mrefdConfig.country       << "\","
+			<< "\"Sponsor\":\""     << mrefdConfig.sponsor       << "\","
+			<< "\"Email\":\""       << mrefdConfig.email         << "\","
 			<< "\"Port\":"          << mrefdConfig.port;
 	}
 	std::cout << '}';
@@ -80,22 +81,21 @@ static void PrintUrfdConfig()
 	if (urfdConfig.timestamp)
 	{
 		std::cout
-			<< "\"Callsign\":\""           << urfdConfig.cs      << "\","
-			<< "\"Version\":\""            << urfdConfig.version << "\","
-			<< "\"Modules\":\""            << urfdConfig.mods    << "\","
-			<< "\"TranscodedModules\":\""  << urfdConfig.tcmods  << "\",";
-			for (auto c : urfdConfig.mods)
+			<< "\"Callsign\":\""           << urfdConfig.callsign        << "\","
+			<< "\"Version\":\""            << urfdConfig.version         << "\","
+			<< "\"Modules\":\""            << urfdConfig.modules         << "\","
+			<< "\"TranscodedModules\":\""  << urfdConfig.transcodedmods  << "\",";
+			for (auto c : urfdConfig.modules)
 			{
 				std::cout << "\"Description" << c << "\":\"" << urfdConfig.description[c-'A'] << "\",";
 			}
 		std::cout
-			<< "\"IPv4Address\":\""        << urfdConfig.ipv4                               << "\","
-			<< "\"IPv6Address\":\""        << urfdConfig.ipv6                               << "\","
+			<< "\"IPv4Address\":\""        << urfdConfig.ipv4addr                           << "\","
+			<< "\"IPv6Address\":\""        << urfdConfig.ipv6addr                           << "\","
 			<< "\"URL\":\""                << urfdConfig.url                                << "\","
 			<< "\"Country\":\""            << urfdConfig.country                            << "\","
 			<< "\"Sponsor\":\""            << urfdConfig.sponsor                            << "\","
 			<< "\"Email\":\""              << urfdConfig.email                              << "\","
-			<< "\"Modules\":\""            << urfdConfig.mods                               << "\","
 			<< "\"G3Enable\":"             << (urfdConfig.g3enabled ? "true" : "false")     << ","
 			<< "\"DCSPort\":"              << urfdConfig.port[toUType(EUrfdPorts::dcs)]     << ","
 			<< "\"DExtraPort\":"           << urfdConfig.port[toUType(EUrfdPorts::dextra)]  << ","

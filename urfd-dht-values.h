@@ -77,7 +77,7 @@ enum class EUrfdRefId : unsigned { nxdn, p25, SIZE };
 struct SUrfdConfig1
 {
 	std::time_t timestamp;
-	std::string cs, ipv4, ipv6, mods, tcmods, url, email, sponsor, country, version;
+	std::string callsign, ipv4addr, ipv6addr, modules, transcodedmods, url, email, sponsor, country, version;
 	std::array<uint16_t, toUType(EUrfdPorts::SIZE)> port;
 	std::array<char, toUType(EUrfdAlMod::SIZE)> almod;
 	std::array<unsigned long, toUType(EUrfdTxRx::SIZE)> ysffreq;
@@ -85,5 +85,5 @@ struct SUrfdConfig1
 	std::unordered_map<char, std::string> description;
 	bool g3enabled;
 
-	MSGPACK_DEFINE(timestamp, cs, ipv4, ipv6, mods, tcmods, url, email, sponsor, country, version, almod, ysffreq, refid, g3enabled, port, description)
+	MSGPACK_DEFINE(timestamp, callsign, ipv4addr, ipv6addr, modules, transcodedmods, url, email, sponsor, country, version, almod, ysffreq, refid, g3enabled, port, description)
 };
