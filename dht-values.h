@@ -38,6 +38,12 @@ struct SDhtValueBase
 
 #ifdef USE_MREFD_VALUES
 
+// user_type for mrefd values
+#define MREFD_USERS_1   "mrefd-users-1"
+#define MREFD_PEERS_1   "mrefd-peers-1"
+#define MREFD_CONFIG_1  "mrefd-config-1"
+#define MREFD_CLIENTS_1 "mrefd-clients-1"
+
 // dht::Value ids of the different parts of the document
 // can be assigned any unsigned value except 0
 enum class EMrefdValueID : uint64_t { Config=1, Peers=2, Clients=3, Users=4 };
@@ -46,7 +52,7 @@ using MrefdPeerTuple = std::tuple<std::string, std::string, std::time_t>;
 enum class EMrefdPeerFields { Callsign, Modules, ConnectTime };
 struct SMrefdPeers1 : public SDhtValueBase
 {
-	SMrefdPeers1() : SDhtValueBase("mrefd-peers-1") {}
+	SMrefdPeers1() : SDhtValueBase(MREFD_PEERS_1) {}
 	unsigned int sequence;
 	std::list<MrefdPeerTuple> list;
 
@@ -57,7 +63,7 @@ using MrefdClientTuple = std::tuple<std::string, std::string, char, std::time_t,
 enum class EMrefdClientFields { Callsign, Ip, Module, ConnectTime, LastHeardTime };
 struct SMrefdClients1 : public SDhtValueBase
 {
-	SMrefdClients1() : SDhtValueBase("mrefd-clients-1") {}
+	SMrefdClients1() : SDhtValueBase(MREFD_CLIENTS_1) {}
 	unsigned int sequence;
 	std::list<MrefdClientTuple> list;
 
@@ -68,7 +74,7 @@ using MrefdUserTuple = std::tuple<std::string, std::string, std::string, std::ti
 enum class EMrefdUserFields { Source, Destination, Reflector, LastHeardTime };
 struct SMrefdUsers1 : public SDhtValueBase
 {
-	SMrefdUsers1() : SDhtValueBase("mrefd-users-1") {}
+	SMrefdUsers1() : SDhtValueBase(MREFD_USERS_1) {}
 	unsigned int sequence;
 	std::list<MrefdUserTuple> list;
 
@@ -77,7 +83,7 @@ struct SMrefdUsers1 : public SDhtValueBase
 
 struct SMrefdConfig1 : public SDhtValueBase
 {
-	SMrefdConfig1() : SDhtValueBase("mrefd-config-1") {}
+	SMrefdConfig1() : SDhtValueBase(MREFD_CONFIG_1) {}
 	std::string callsign, ipv4addr, ipv6addr, modules, encryptedmods, url, email, sponsor, country, version;
 	uint16_t port;
 
@@ -88,13 +94,18 @@ struct SMrefdConfig1 : public SDhtValueBase
 
 #ifdef USE_URFD_VALUES
 
+#define URFD_PEERS_1   "urfd-peers-1"
+#define URFD_USERS_1   "urfd-users-1"
+#define URFD_CONFIG_1  "urfd-config-1"
+#define URFD_CLIENTS_1 "urfd-clients-1"
+
 enum class EUrfdValueID : uint64_t { Config=1, Peers=2, Clients=3, Users=4 };
 
 using UrfdPeerTuple = std::tuple<std::string, std::string, std::time_t>;
 enum class EUrfdPeerFields { Callsign, Modules, ConnectTime };
 struct SUrfdPeers1 : public SDhtValueBase
 {
-	SUrfdPeers1() : SDhtValueBase("urfd-peers-1") {}
+	SUrfdPeers1() : SDhtValueBase(URFD_PEERS_1) {}
 	unsigned int sequence;
 	std::list<UrfdPeerTuple> list;
 
@@ -105,7 +116,7 @@ using UrfdClientTuple = std::tuple<std::string, std::string, char, std::time_t, 
 enum class EUrfdClientFields { Callsign, Ip, Module, ConnectTime, LastHeardTime };
 struct SUrfdClients1 : public SDhtValueBase
 {
-	SUrfdClients1() : SDhtValueBase("urfd-clients-1") {}
+	SUrfdClients1() : SDhtValueBase(URFD_CLIENTS_1) {}
 	unsigned int sequence;
 	std::list<UrfdClientTuple> list;
 
@@ -116,7 +127,7 @@ using UrfdUserTuple = std::tuple<std::string, std::string, char, std::string, st
 enum class EUrfdUserFields { Callsign, ViaNode, OnModule, ViaPeer, LastHeardTime };
 struct SUrfdUsers1 : public SDhtValueBase
 {
-	SUrfdUsers1() : SDhtValueBase("urfd-user-1") {}
+	SUrfdUsers1() : SDhtValueBase(URFD_USERS_1) {}
 	unsigned int sequence;
 	std::list<UrfdUserTuple> list;
 
@@ -130,7 +141,7 @@ enum class EUrfdTxRx  : unsigned { rx, tx, SIZE };
 enum class EUrfdRefId : unsigned { nxdn, p25, SIZE };
 struct SUrfdConfig1 : public SDhtValueBase
 {
-	SUrfdConfig1() : SDhtValueBase("urfd-config-1") {}
+	SUrfdConfig1() : SDhtValueBase(URFD_CONFIG_1) {}
 	std::string callsign, ipv4addr, ipv6addr, modules, transcodedmods, url, email, sponsor, country, version;
 	std::array<uint16_t, toUType(EUrfdPorts::SIZE)> port;
 	std::array<char, toUType(EUrfdAlMod::SIZE)> almod;
