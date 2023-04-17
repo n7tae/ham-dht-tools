@@ -1,14 +1,12 @@
-//  Copyright © 2023 Thomas A. Early, N7TAE
+//  Copyright © 2022 Thomas A. Early, N7TAE
 //
 // ----------------------------------------------------------------------------
-//    This file is part of urfd.
-//
-//    M17Refd is free software: you can redistribute it and/or modify
+//    This is free software: you can redistribute it and/or modify
 //    it under the terms of the GNU General Public License as published by
 //    the Free Software Foundation, either version 3 of the License, or
 //    (at your option) any later version.
 //
-//    M17Refd is distributed in the hope that it will be useful,
+//    This is distributed in the hope that it will be useful,
 //    but WITHOUT ANY WARRANTY; without even the implied warranty of
 //    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //    GNU General Public License for more details.
@@ -21,62 +19,118 @@
 
 #include <opendht.h>
 
+#define USE_MREFD_VALUES
+#define USE_URFD_VALUES
+
 /* HELPERS */
-#ifndef TO_U_TYPE_DEF
-#define TO_U_TYPE_DEF
 template<typename E> constexpr auto toUType(E enumerator) noexcept
 {
 	return static_cast<std::underlying_type_t<E>>(enumerator);
 } // Item #10 in "Effective Modern C++", by Scott Meyers, O'REILLY
+
+// every value type needs a const user_type and a timestamp
+struct SDhtValueBase
+{
+	SDhtValueBase(const std::string &s) : user_type(s) {}
+	std::string user_type;
+	std::time_t timestamp;
+};
+
+#ifdef USE_MREFD_VALUES
+
+// dht::Value ids of the different parts of the document
+// can be assigned any unsigned value except 0
+enum class EMrefdValueID : uint64_t { Config=1, Peers=2, Clients=3, Users=4 };
+
+using MrefdPeerTuple = std::tuple<std::string, std::string, std::time_t>;
+enum class EMrefdPeerFields { Callsign, Modules, ConnectTime };
+struct SMrefdPeers1 : public SDhtValueBase
+{
+	SMrefdPeers1() : SDhtValueBase("mrefd-peers-1") {}
+	unsigned int sequence;
+	std::list<MrefdPeerTuple> list;
+
+	MSGPACK_DEFINE(timestamp, sequence, list)
+};
+
+using MrefdClientTuple = std::tuple<std::string, std::string, char, std::time_t, std::time_t>;
+enum class EMrefdClientFields { Callsign, Ip, Module, ConnectTime, LastHeardTime };
+struct SMrefdClients1 : public SDhtValueBase
+{
+	SMrefdClients1() : SDhtValueBase("mrefd-clients-1") {}
+	unsigned int sequence;
+	std::list<MrefdClientTuple> list;
+
+	MSGPACK_DEFINE(timestamp, sequence, list)
+};
+
+using MrefdUserTuple = std::tuple<std::string, std::string, std::string, std::time_t>;
+enum class EMrefdUserFields { Source, Destination, Reflector, LastHeardTime };
+struct SMrefdUsers1 : public SDhtValueBase
+{
+	SMrefdUsers1() : SDhtValueBase("mrefd-users-1") {}
+	unsigned int sequence;
+	std::list<MrefdUserTuple> list;
+
+	MSGPACK_DEFINE(timestamp, sequence, list)
+};
+
+struct SMrefdConfig1 : public SDhtValueBase
+{
+	SMrefdConfig1() : SDhtValueBase("mrefd-config-1") {}
+	std::string callsign, ipv4addr, ipv6addr, modules, encryptedmods, url, email, sponsor, country, version;
+	uint16_t port;
+
+	MSGPACK_DEFINE(timestamp, callsign, ipv4addr, ipv6addr, modules, encryptedmods, url, email, sponsor, country, version, port)
+};
+
 #endif
+
+#ifdef USE_URFD_VALUES
 
 enum class EUrfdValueID : uint64_t { Config=1, Peers=2, Clients=3, Users=4 };
 
-// PEERS: user_type = "urfd-peers-1"
 using UrfdPeerTuple = std::tuple<std::string, std::string, std::time_t>;
 enum class EUrfdPeerFields { Callsign, Modules, ConnectTime };
-struct SUrfdPeers1
+struct SUrfdPeers1 : public SDhtValueBase
 {
-	std::time_t timestamp;
+	SUrfdPeers1() : SDhtValueBase("urfd-peers-1") {}
 	unsigned int sequence;
 	std::list<UrfdPeerTuple> list;
 
 	MSGPACK_DEFINE(timestamp, sequence, list)
 };
 
-// CLIENTS: user_type = "urfd-clients-1"
 using UrfdClientTuple = std::tuple<std::string, std::string, char, std::time_t, std::time_t>;
 enum class EUrfdClientFields { Callsign, Ip, Module, ConnectTime, LastHeardTime };
-struct SUrfdClients1
+struct SUrfdClients1 : public SDhtValueBase
 {
-	std::time_t timestamp;
+	SUrfdClients1() : SDhtValueBase("urfd-clients-1") {}
 	unsigned int sequence;
 	std::list<UrfdClientTuple> list;
 
 	MSGPACK_DEFINE(timestamp, sequence, list)
 };
 
-// USERS: user_type = urfd-users-1"
 using UrfdUserTuple = std::tuple<std::string, std::string, char, std::string, std::time_t>;
 enum class EUrfdUserFields { Callsign, ViaNode, OnModule, ViaPeer, LastHeardTime };
-struct SUrfdUsers1
+struct SUrfdUsers1 : public SDhtValueBase
 {
-	std::time_t timestamp;
+	SUrfdUsers1() : SDhtValueBase("urfd-user-1") {}
 	unsigned int sequence;
 	std::list<UrfdUserTuple> list;
 
 	MSGPACK_DEFINE(timestamp, sequence, list)
 };
 
-// CONFIGURATION: user_type = "urfd-config-1"
 // 'SIZE' has to be last value for these scoped enums
 enum class EUrfdPorts : unsigned { dcs, dextra, dmrplus, dplus, m17, mmdvm, nxdn, p25, urf, ysf, SIZE };
 enum class EUrfdAlMod : unsigned { nxdn, p25, ysf, SIZE };
 enum class EUrfdTxRx  : unsigned { rx, tx, SIZE };
 enum class EUrfdRefId : unsigned { nxdn, p25, SIZE };
-struct SUrfdConfig1
+struct SUrfdConfig1 : public SDhtValueBase
 {
-	std::time_t timestamp;
+	SUrfdConfig1() : SDhtValueBase("urfd-config-1") {}
 	std::string callsign, ipv4addr, ipv6addr, modules, transcodedmods, url, email, sponsor, country, version;
 	std::array<uint16_t, toUType(EUrfdPorts::SIZE)> port;
 	std::array<char, toUType(EUrfdAlMod::SIZE)> almod;
@@ -87,3 +141,5 @@ struct SUrfdConfig1
 
 	MSGPACK_DEFINE(timestamp, callsign, ipv4addr, ipv6addr, modules, transcodedmods, url, email, sponsor, country, version, almod, ysffreq, refid, g3enabled, port, description)
 };
+
+#endif

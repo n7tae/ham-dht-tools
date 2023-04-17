@@ -23,8 +23,7 @@
 #include <list>
 #include <atomic>
 
-#include "mrefd-dht-values.h"
-#include "urfd-dht-values.h"
+#include "dht-values.h"
 
 static const std::string default_bs("xlx757.openquad.net");
 static dht::Where w;
@@ -60,7 +59,7 @@ static void FindPeers(dht::DhtRunner &node, const std::string &refcs, const char
 		{
 			if (v->checkSignature())
 			{
-				if (0 == v->user_type.compare("mrefd-peers-1"))
+				if (0 == v->user_type.compare(mrefdPeers.user_type))
 				{
 					auto rdat = dht::Value::unpack<SMrefdPeers1>(*v);
 					if (rdat.timestamp > mrefdPeers.timestamp)
@@ -73,7 +72,7 @@ static void FindPeers(dht::DhtRunner &node, const std::string &refcs, const char
 							mrefdPeers = dht::Value::unpack<SMrefdPeers1>(*v);
 					}
 				}
-				else if (0 == v->user_type.compare("urfd-peers-1"))
+				else if (0 == v->user_type.compare(urfdPeers.user_type))
 				{
 					auto rdat = dht::Value::unpack<SUrfdPeers1>(*v);
 					if (rdat.timestamp > urfdPeers.timestamp)
