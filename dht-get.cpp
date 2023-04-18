@@ -380,7 +380,7 @@ int main(int argc, char *argv[])
 						switch (v->id)
 						{
 							case toUType(EMrefdValueID::Config):
-								if (0 == v->user_type.compare(mrefdConfig.user_type))
+								if (0 == v->user_type.compare(MREFD_CONFIG_1))
 								{
 									auto rdat = dht::Value::unpack<SMrefdConfig1>(*v);
 									if (rdat.timestamp > mrefdConfig.timestamp)
@@ -388,7 +388,7 @@ int main(int argc, char *argv[])
 								}
 								break;
 							case toUType(EMrefdValueID::Peers):
-								if (0 == v->user_type.compare(mrefdPeers.user_type))
+								if (0 == v->user_type.compare(MREFD_PEERS_1))
 								{
 									auto rdat = dht::Value::unpack<SMrefdPeers1>(*v);
 									if (rdat.timestamp > mrefdPeers.timestamp)
@@ -402,7 +402,7 @@ int main(int argc, char *argv[])
 								}
 								break;
 							case toUType(EMrefdValueID::Clients):
-								if (0 == v->user_type.compare(mrefdClients.user_type))
+								if (0 == v->user_type.compare(MREFD_CLIENTS_1))
 								{
 									auto rdat = dht::Value::unpack<SMrefdClients1>(*v);
 									if (rdat.timestamp > mrefdClients.timestamp)
@@ -416,7 +416,7 @@ int main(int argc, char *argv[])
 								}
 								break;
 							case toUType(EMrefdValueID::Users):
-								if (0 == v->user_type.compare(mrefdUsers.user_type))
+								if (0 == v->user_type.compare(MREFD_USERS_1))
 								{
 									auto rdat = dht::Value::unpack<SMrefdUsers1>(*v);
 									if (rdat.timestamp > mrefdPeers.timestamp)
@@ -459,7 +459,7 @@ int main(int argc, char *argv[])
 						switch (v->id)
 						{
 							case toUType(EUrfdValueID::Config):
-								if (0 == v->user_type.compare(urfdConfig.user_type))
+								if (0 == v->user_type.compare(URFD_CONFIG_1))
 								{
 									auto rdat = dht::Value::unpack<SUrfdConfig1>(*v);
 									if (rdat.timestamp > urfdConfig.timestamp)
@@ -467,7 +467,7 @@ int main(int argc, char *argv[])
 								}
 								break;
 							case toUType(EUrfdValueID::Peers):
-								if (0 == v->user_type.compare(urfdPeers.user_type))
+								if (0 == v->user_type.compare(URFD_PEERS_1))
 								{
 									auto rdat = dht::Value::unpack<SUrfdPeers1>(*v);
 									if (rdat.timestamp > urfdPeers.timestamp)
@@ -481,7 +481,7 @@ int main(int argc, char *argv[])
 								}
 								break;
 							case toUType(EUrfdValueID::Clients):
-								if (0 == v->user_type.compare(urfdClients.user_type))
+								if (0 == v->user_type.compare(URFD_CLIENTS_1))
 								{
 									auto rdat = dht::Value::unpack<SUrfdClients1>(*v);
 									if (rdat.timestamp > urfdClients.timestamp)
@@ -495,7 +495,7 @@ int main(int argc, char *argv[])
 								}
 								break;
 							case toUType(EUrfdValueID::Users):
-								if (0 == v->user_type.compare(urfdUsers.user_type))
+								if (0 == v->user_type.compare(URFD_USERS_1))
 								{
 									auto rdat = dht::Value::unpack<SUrfdUsers1>(*v);
 									if (rdat.timestamp > mrefdPeers.timestamp)
