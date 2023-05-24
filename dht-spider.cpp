@@ -59,7 +59,7 @@ static void FindPeers(dht::DhtRunner &node, const std::string &refcs, const char
 		{
 			if (v->checkSignature())
 			{
-				if (0 == v->user_type.compare(mrefdPeers.user_type))
+				if (0 == v->user_type.compare(MREFD_PEERS_1))
 				{
 					auto rdat = dht::Value::unpack<SMrefdPeers1>(*v);
 					if (rdat.timestamp > mrefdPeers.timestamp)
@@ -72,7 +72,7 @@ static void FindPeers(dht::DhtRunner &node, const std::string &refcs, const char
 							mrefdPeers = dht::Value::unpack<SMrefdPeers1>(*v);
 					}
 				}
-				else if (0 == v->user_type.compare(urfdPeers.user_type))
+				else if (0 == v->user_type.compare(URFD_PEERS_1))
 				{
 					auto rdat = dht::Value::unpack<SUrfdPeers1>(*v);
 					if (rdat.timestamp > urfdPeers.timestamp)
