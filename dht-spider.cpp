@@ -161,19 +161,21 @@ static void FindPeers(dht::DhtRunner &node, const std::string &refcs, const char
 
 static void Usage(std::ostream &ostr, const char *comname)
 {
-	ostr << "usage: " << comname << " [-b bootstrap] node_name module" << std::endl << std::endl;
+	ostr << "usage: " << comname << " [-b bootstrap] [-l] node_name module" << std::endl << std::endl;
 	ostr << "Options:" << std::endl;
 	ostr << "    -b (bootstrap) argument is any running node on the dht network" << std::endl;
+	ostr << "    -l to only print the list of linked peers" << std::endl;
 	ostr << "       If not specified, " << default_bs << " will be used." << std::endl;
 }
 
 int main(int argc, char *argv[])
 {
+	bool onlylist = false;
 	// parse the command line
 	std::string bs(default_bs);
 	while (1)
 	{
-		int c = getopt(argc, argv, "b:");
+		int c = getopt(argc, argv, "b:l");
 		if (c < 0)
 		{
 			if (1 == argc)
@@ -188,6 +190,9 @@ int main(int argc, char *argv[])
 		{
 		case 'b':
 			bs.assign(optarg);
+			break;
+		case 'l':
+			onlylist = true;
 			break;
 
 		default:
@@ -230,7 +235,8 @@ int main(int argc, char *argv[])
 	dht::DhtRunner node;
 	node.run(17171, dht::crypto::generateIdentity(name));
 	node.bootstrap(bs, "17171");
-	std::cout << "Running node using name " << name << " and bootstrapping from " << bs << std::endl;
+	if (! onlylist)
+		std::cout << "Running node using name " << name << " and bootstrapping from " << bs << std::endl;
 
 	// set up the where condition
 	w.id(isM17 ? toUType(EMrefdValueID::Peers) : toUType(EUrfdValueID::Peers));
@@ -245,35 +251,45 @@ int main(int argc, char *argv[])
 	{
 		group.push_back(row.first);
 	}
-	// now print the connect matrix
-	const std::string space(isM17 ? 9 : 8, ' ');
-	std::cout << space << std::string(2*Web.size()+1, '=') << std::endl;
-	for (const auto &row : group)
+	if (onlylist)
 	{
-		std::cout << row << " |";
-		for (const auto &col : group)
+		for (const auto &p : group)
 		{
-			if (row == col)
-			{
-				std::cout << ' ' << ((Web[row].size()) ? '=' : '?');
-			}
-			else
-			{
-				std::cout << ' ' << ((Web[row].end() == Web[row].find(col)) ? ' ' : '+');
-			}
+			std::cout << p << std::endl;
 		}
-		std::cout << " | " << row.substr(isM17 ? 4 : 3) << std::endl;
 	}
-	std::cout << space << std::string(2*Web.size()+1, '=') << std::endl;
-	for (int i=0; i<3; i++)
+	else
 	{
-		std::cout << space;
-		for (const auto &ref : group)
+		// now print the connect matrix
+		const std::string space(isM17 ? 9 : 8, ' ');
+		std::cout << space << std::string(2*Web.size()+1, '=') << std::endl;
+		for (const auto &row : group)
 		{
-			int j = i + (isM17 ? 4 : 3);
-			std::cout << ' ' << ref.at(j);
+			std::cout << row << " |";
+			for (const auto &col : group)
+			{
+				if (row == col)
+				{
+					std::cout << ' ' << ((Web[row].size()) ? '=' : '?');
+				}
+				else
+				{
+					std::cout << ' ' << ((Web[row].end() == Web[row].find(col)) ? ' ' : '+');
+				}
+			}
+			std::cout << " | " << row.substr(isM17 ? 4 : 3) << std::endl;
 		}
-		std::cout << std::endl;
+		std::cout << space << std::string(2*Web.size()+1, '=') << std::endl;
+		for (int i=0; i<3; i++)
+		{
+			std::cout << space;
+			for (const auto &ref : group)
+			{
+				int j = i + (isM17 ? 4 : 3);
+				std::cout << ' ' << ref.at(j);
+			}
+			std::cout << std::endl;
+		}
 	}
 
 	node.join();

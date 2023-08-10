@@ -22,23 +22,23 @@ if (( $# != 3 )); then
 	exit 1
 fi
 
-p=${3,,}
+k=${3,,}
 
-if [[ "$p" == c* ]]; then
+if [[ "$k" == c* ]]; then
 	p='Country'
-elif [[ "$p" == e* ]]; then
+elif [[ "$k" == e* ]]; then
 	p='Email'
-elif [[ '$p' == p* ]]; then
+elif [[ "$k" == p* ]]; then
 	p='Port'
-elif [[ '$p' == s* ]]; then
+elif [[ "$k" == s* ]]; then
 	p='Sponsor'
-elif [[ '$p' == u* ]]; then
+elif [[ "$k" == u* ]]; then
 	p='URL'
-elif [[ "$p" == v* ]]; then
+elif [[ "$k" == v* ]]; then
 	p='Version'
-elif [[ "$p" == 4* ]]; then
+elif [[ "$k" == 4* ]]; then
 	p='IPv4Address'
-elif [[ "$p" == 6* ]]; then
+elif [[ "$k" == 6* ]]; then
 	p='IPv6Address'
 else
 	echo "'$3' is not regcognized! Please use one of:"
@@ -53,7 +53,7 @@ else
 	exit 2
 fi
 
-reflectors=( `./dht-spider -j $1 $2 | jq .Peers | jq --raw-output .[]` )
+reflectors=( `./dht-spider -l $1 $2` )
 
 for r in ${reflectors[*]}
 do
