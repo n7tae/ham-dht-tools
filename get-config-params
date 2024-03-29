@@ -1,24 +1,35 @@
 #!/bin/bash
 
-#  Copyright © 2023 Thomas A. Early, N7TAE
+#  Copyright © 2024 Thomas A. Early, N7TAE
+
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
 #
-# ----------------------------------------------------------------------------
-#    This script is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
-#
-#    This script is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-#
-#    You should have received a copy of the GNU General Public License
-#    with this software.  If not, see <http:#www.gnu.org/licenses/>.
-# ----------------------------------------------------------------------------
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+
+Explain () {
+	echo "c (for Country)"
+	echo "e (for Email)"
+	echo "p (for Port)"
+	echo "s (for Sponsor)"
+	echo "u (for URL)"
+	echo "v (for Version)"
+	echo "4 (for IPv4Address)"
+	echo "6 (for IPv6Address)"
+}
 
 if (( $# != 3 )); then
 	echo Usage: "$0 reflector module (c|e|p|s|u|v|4|6)"
+	Explain
 	exit 1
 fi
 
@@ -42,14 +53,7 @@ elif [[ "$k" == 6* ]]; then
 	p='IPv6Address'
 else
 	echo "'$3' is not regcognized! Please use one of:"
-	echo "c (for Country)"
-	echo "e (for Email)"
-	echo "p (for Port)"
-	echo "s (for Sponsor)"
-	echo "u (for URL)"
-	echo "v (for Version)"
-	echo "4 (for IPv4Address)"
-	echo "6 (for IPv6Address)"
+	Explain
 	exit 2
 fi
 

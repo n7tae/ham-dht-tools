@@ -35,7 +35,7 @@ endif
 
 all : dht-get dht-spider
 
-dht-get : dht-get.cpp
+dht-get : dht-get.cpp dht-helpers.cpp
 	$(CXX) $(CFLAGS) -o $@ $^ -pthread -lopendht
 
 dht-spider : dht-spider.cpp

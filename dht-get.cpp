@@ -1,5 +1,5 @@
 /*
- *   Copyright (c) 2022 by Thomas A. Early N7TAE
+ *   Copyright (c) 2022-2024 by Thomas A. Early N7TAE
  *
  *   This program is free software; you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by
@@ -23,6 +23,7 @@
 #include <condition_variable>
 
 #include "dht-values.h"
+#include "dht-helpers.h"
 
 static bool running = true;
 static std::condition_variable cv;
@@ -35,196 +36,14 @@ static SMrefdConfig1  mrefdConfig;
 static SMrefdPeers1   mrefdPeers;
 static SMrefdClients1 mrefdClients;
 static SMrefdUsers1   mrefdUsers;
-static SUrfdConfig1   urfdConfig;
+static SUrfdConfig2   urfdConfig;
 static SUrfdPeers1    urfdPeers;
-static SUrfdClients1  urfdClients;
+static SUrfdClients2  urfdClients;
 static SUrfdUsers1    urfdUsers;
+static SUrfdConfig1   cfg1;
+static SUrfdClients1  cli1;
 
 enum class ENodeType { urfd, mrefd };
-
-static const char *TimeString(const std::time_t tt)
-{
-	static char str[32];
-	if (use_local)
-		strftime(str, 32, "%F %T %Z", localtime(&tt));
-	else
-		strftime(str, 32, "%FT%TZ", gmtime(&tt));
-	return str;
-}
-
-static void PrintMrefdConfig()
-{
-	std::cout << "\"Configuration\":{";
-	if (mrefdConfig.timestamp)
-	{
-		std::cout
-			<< "\"Callsign\":\""    << mrefdConfig.callsign      << "\","
-			<< "\"Version\":\""     << mrefdConfig.version       << "\","
-			<< "\"Modules\":\""     << mrefdConfig.modules       << "\","
-			<< "\"EncryptMods\":\"" << mrefdConfig.encryptedmods << "\","
-			<< "\"IPv4Address\":\"" << mrefdConfig.ipv4addr      << "\","
-			<< "\"IPv6Address\":\"" << mrefdConfig.ipv6addr      << "\","
-			<< "\"URL\":\""         << mrefdConfig.url           << "\","
-			<< "\"Country\":\""     << mrefdConfig.country       << "\","
-			<< "\"Sponsor\":\""     << mrefdConfig.sponsor       << "\","
-			<< "\"Email\":\""       << mrefdConfig.email         << "\","
-			<< "\"Port\":"          << mrefdConfig.port;
-	}
-	std::cout << '}';
-	if (section == 'a') std::cout << ',';
-}
-
-static void PrintUrfdConfig()
-{
-	std::cout << "\"Configuration\":{";
-	if (urfdConfig.timestamp)
-	{
-		std::cout
-			<< "\"Callsign\":\""           << urfdConfig.callsign        << "\","
-			<< "\"Version\":\""            << urfdConfig.version         << "\","
-			<< "\"Modules\":\""            << urfdConfig.modules         << "\","
-			<< "\"TranscodedModules\":\""  << urfdConfig.transcodedmods  << "\",";
-			for (auto c : urfdConfig.modules)
-			{
-				std::cout << "\"Description" << c << "\":\"" << urfdConfig.description[c-'A'] << "\",";
-			}
-		std::cout
-			<< "\"IPv4Address\":\""        << urfdConfig.ipv4addr                           << "\","
-			<< "\"IPv6Address\":\""        << urfdConfig.ipv6addr                           << "\","
-			<< "\"URL\":\""                << urfdConfig.url                                << "\","
-			<< "\"Country\":\""            << urfdConfig.country                            << "\","
-			<< "\"Sponsor\":\""            << urfdConfig.sponsor                            << "\","
-			<< "\"Email\":\""              << urfdConfig.email                              << "\","
-			<< "\"G3Enable\":"             << (urfdConfig.g3enabled ? "true" : "false")     << ","
-			<< "\"DCSPort\":"              << urfdConfig.port[toUType(EUrfdPorts::dcs)]     << ","
-			<< "\"DExtraPort\":"           << urfdConfig.port[toUType(EUrfdPorts::dextra)]  << ","
-			<< "\"DMRPlusPort\":"          << urfdConfig.port[toUType(EUrfdPorts::dmrplus)] << ","
-			<< "\"DPlusPort\":"            << urfdConfig.port[toUType(EUrfdPorts::dplus)]   << ","
-			<< "\"M17Port\":"              << urfdConfig.port[toUType(EUrfdPorts::m17)]     << ","
-			<< "\"MMDVMPort\":"            << urfdConfig.port[toUType(EUrfdPorts::mmdvm)]   << ","
-			<< "\"NXDNPort\":"             << urfdConfig.port[toUType(EUrfdPorts::nxdn)]    << ","
-			<< "\"NXDNAutoLinkModule\":\"" << urfdConfig.almod[toUType(EUrfdAlMod::nxdn)]   << "\","
-			<< "\"NXDNReflectorID\":"      << urfdConfig.refid[toUType(EUrfdRefId::nxdn)]   << ","
-			<< "\"P25Port\":"              << urfdConfig.port[toUType(EUrfdPorts::p25)]     << ","
-			<< "\"P25AutoLinkModule\":\""  << urfdConfig.almod[toUType(EUrfdAlMod::p25)]    << "\","
-			<< "\"P25ReflectorID\":"       << urfdConfig.refid[toUType(EUrfdRefId::p25)]    << ","
-			<< "\"URFPort\":"              << urfdConfig.port[toUType(EUrfdPorts::urf)]     << ","
-			<< "\"YSFPort\":"              << urfdConfig.port[toUType(EUrfdPorts::ysf)]     << ","
-			<< "\"YSFPort\":"              << urfdConfig.port[toUType(EUrfdPorts::ysf)]     << ","
-			<< "\"YSFAutoLinkModule\":\""  << urfdConfig.almod[toUType(EUrfdAlMod::ysf)]    << "\","
-			<< "\"YSFDefaultRxFreq\":"     << urfdConfig.ysffreq[toUType(EUrfdTxRx::rx)]    << ","
-			<< "\"YSFDefaultTxFreq\":"     << urfdConfig.ysffreq[toUType(EUrfdTxRx::tx)];
-	}
-	std::cout << '}';
-	if (section == 'a') std::cout << ',';
-}
-
-static void PrintMrefdPeers()
-{
-	std::cout << "\"Peers\":[";
-	auto pit=mrefdPeers.list.cbegin();
-	while (pit != mrefdPeers.list.cend())
-	{
-		std::cout <<
-			"{\"Callsign\":\""   << std::get<toUType(EMrefdPeerFields::Callsign)>(*pit) << "\"," <<
-			"\"Modules\":\""     << std::get<toUType(EMrefdPeerFields::Modules)>(*pit)  << "\"," <<
-			"\"ConnectTime\":\"" << TimeString(std::get<toUType(EMrefdPeerFields::ConnectTime)>(*pit)) << "\"}";
-		if (++pit != mrefdPeers.list.end())
-			std::cout << ',';
-	}
-	std::cout << ']';
-	if (section =='a') std::cout << ',';
-}
-
-static void PrintUrfdPeers()
-{
-	std::cout << "\"Peers\":[";
-	auto pit=urfdPeers.list.cbegin();
-	while (pit != urfdPeers.list.cend())
-	{
-		std::cout <<
-			"{\"Callsign\":\""   << std::get<toUType(EUrfdPeerFields::Callsign)>(*pit) << "\"," <<
-			"\"Modules\":\""     << std::get<toUType(EUrfdPeerFields::Modules)>(*pit)  << "\"," <<
-			"\"ConnectTime\":\"" << TimeString(std::get<toUType(EUrfdPeerFields::ConnectTime)>(*pit)) << "\"}";
-		if (++pit != urfdPeers.list.end())
-			std::cout << ',';
-	}
-	std::cout << ']';
-	if (section =='a') std::cout << ',';
-}
-
-static void PrintMrefdClients()
-{
-	std::cout << "\"Clients\":[";
-	auto cit = mrefdClients.list.cbegin();
-	while (cit != mrefdClients.list.cend())
-	{
-		std::cout <<
-			"{\"Module\":\""       << std::get<toUType(EMrefdClientFields::Module)>(*cit)                    << "\"," <<
-			"\"Callsign\":\""      << std::get<toUType(EMrefdClientFields::Callsign)>(*cit)                  << "\"," <<
-			"\"IP\":\""            << std::get<toUType(EMrefdClientFields::Ip)>(*cit)                        << "\"," <<
-			"\"ConnectTime\":\""   << TimeString(std::get<toUType(EMrefdClientFields::ConnectTime)>(*cit))   << "\"," <<
-			"\"LastHeardTime\":\"" << TimeString(std::get<toUType(EMrefdClientFields::LastHeardTime)>(*cit)) << "\"}";
-		if (++cit != mrefdClients.list.cend())
-			std::cout << ',';
-	}
-	std::cout << ']';
-	if (section == 'a') std::cout << ',';
-}
-
-static void PrintUrfdClients()
-{
-	std::cout << "\"Clients\":[";
-	auto cit = urfdClients.list.cbegin();
-	while (cit != urfdClients.list.cend())
-	{
-		std::cout <<
-			"{\"Module\":\""       << std::get<toUType(EUrfdClientFields::Module)>(*cit)                    << "\"," <<
-			"\"Callsign\":\""      << std::get<toUType(EUrfdClientFields::Callsign)>(*cit)                  << "\"," <<
-			"\"IP\":\""            << std::get<toUType(EUrfdClientFields::Ip)>(*cit)                        << "\"," <<
-			"\"ConnectTime\":\""   << TimeString(std::get<toUType(EUrfdClientFields::ConnectTime)>(*cit))   << "\"," <<
-			"\"LastHeardTime\":\"" << TimeString(std::get<toUType(EUrfdClientFields::LastHeardTime)>(*cit)) << "\"}";
-		if (++cit != urfdClients.list.cend())
-			std::cout << ',';
-	}
-	std::cout << ']';
-	if (section == 'a') std::cout << ',';
-}
-
-static void PrintMrefdUsers()
-{
-	std::cout << "\"Users\":[";
-	auto uit = mrefdUsers.list.cbegin();
-	while (uit != mrefdUsers.list.cend())
-	{
-		std::cout <<
-			"{\"Source\":\""       << std::get<toUType(EMrefdUserFields::Source)>(*uit)                    << "\"," <<
-			"\"Destination\":\""   << std::get<toUType(EMrefdUserFields::Destination)>(*uit)               << "\"," <<
-			"\"Reflector\":\""     << std::get<toUType(EMrefdUserFields::Reflector)>(*uit)                 << "\"," <<
-			"\"LastHeardTime\":\"" << TimeString(std::get<toUType(EMrefdUserFields::LastHeardTime)>(*uit)) << "\"}";
-		if (++uit != mrefdUsers.list.cend())
-			std::cout << ',';
-	}
-	std::cout << ']';
-}
-
-static void PrintUrfdUsers()
-{
-	std::cout << "\"Users\":[";
-	auto uit = urfdUsers.list.cbegin();
-	while (uit != urfdUsers.list.cend())
-	{
-		std::cout <<
-			"{\"Callsign\":\""     << std::get<toUType(EUrfdUserFields::Callsign)>(*uit)                  << "\"," <<
-			"\"OnModule\":\""      << std::get<toUType(EUrfdUserFields::OnModule)>(*uit)                  << "\"," <<
-			"\"ViaNode\":\""       << std::get<toUType(EUrfdUserFields::ViaNode)>(*uit)                   << "\"," <<
-			"\"ViaPeer\":\""       << std::get<toUType(EUrfdUserFields::ViaPeer)>(*uit)                   << "\"," <<
-			"\"LastHeardTime\":\"" << TimeString(std::get<toUType(EUrfdUserFields::LastHeardTime)>(*uit)) << "\"}";
-		if (++uit != urfdUsers.list.cend())
-			std::cout << ',';
-	}
-	std::cout << ']';
-}
 
 static void Usage(std::ostream &ostr, const char *comname)
 {
@@ -308,6 +127,7 @@ int main(int argc, char *argv[])
 
 	mrefdConfig.timestamp = mrefdPeers.timestamp = mrefdClients.timestamp = mrefdUsers.timestamp = 0;
 	urfdConfig.timestamp  = urfdPeers.timestamp  = urfdClients.timestamp  = urfdUsers.timestamp  = 0;
+	cfg1.timestamp = cli1.timestamp = 0;
 
 	ENodeType keytype;
 	if (0 == key.compare(0, 4, "M17-"))
@@ -462,8 +282,15 @@ int main(int argc, char *argv[])
 								if (0 == v->user_type.compare(URFD_CONFIG_1))
 								{
 									auto rdat = dht::Value::unpack<SUrfdConfig1>(*v);
+									if (rdat.timestamp > cfg1.timestamp)
+										cfg1 = dht::Value::unpack<SUrfdConfig1>(*v);
+									CopyUrfdConfigure1to2(cfg1, urfdConfig);
+								}
+								else if (0 == v->user_type.compare(URFD_CONFIG_2))
+								{
+									auto rdat = dht::Value::unpack<SUrfdConfig2>(*v);
 									if (rdat.timestamp > urfdConfig.timestamp)
-										urfdConfig = dht::Value::unpack<SUrfdConfig1>(*v);
+										urfdConfig = dht::Value::unpack<SUrfdConfig2>(*v);
 								}
 								break;
 							case toUType(EUrfdValueID::Peers):
@@ -484,13 +311,26 @@ int main(int argc, char *argv[])
 								if (0 == v->user_type.compare(URFD_CLIENTS_1))
 								{
 									auto rdat = dht::Value::unpack<SUrfdClients1>(*v);
+									if (rdat.timestamp > cli1.timestamp)
+									{
+										cli1 = dht::Value::unpack<SUrfdClients1>(*v);
+									} else if (rdat.timestamp==cli1.timestamp)
+									{
+										if (rdat.sequence > cli1.sequence)
+											cli1 = dht::Value::unpack<SUrfdClients1>(*v);
+									}
+									CopyUrfdClients1to2(cli1, urfdClients);
+								}
+								else if (0 == v->user_type.compare(URFD_CLIENTS_2))
+								{
+									auto rdat = dht::Value::unpack<SUrfdClients2>(*v);
 									if (rdat.timestamp > urfdClients.timestamp)
 									{
-										urfdClients = dht::Value::unpack<SUrfdClients1>(*v);
+										urfdClients = dht::Value::unpack<SUrfdClients2>(*v);
 									} else if (rdat.timestamp==urfdClients.timestamp)
 									{
 										if (rdat.sequence > urfdClients.sequence)
-											urfdClients = dht::Value::unpack<SUrfdClients1>(*v);
+											urfdClients = dht::Value::unpack<SUrfdClients2>(*v);
 									}
 								}
 								break;
@@ -543,29 +383,29 @@ int main(int argc, char *argv[])
 		case 'c':
 			switch (keytype)
 			{
-				case ENodeType::mrefd: PrintMrefdConfig(); break;
-				case ENodeType::urfd:  PrintUrfdConfig();  break;
+				case ENodeType::mrefd: PrintMrefdConfig(mrefdConfig, std::cout); break;
+				case ENodeType::urfd:  PrintUrfdConfig(urfdConfig, std::cout);  break;
 			}
 			break;
 		case 'p':
 			switch (keytype)
 			{
-				case ENodeType::mrefd: PrintMrefdPeers(); break;
-				case ENodeType::urfd:  PrintUrfdPeers();  break;
+				case ENodeType::mrefd: PrintMrefdPeers(mrefdPeers, use_local, std::cout); break;
+				case ENodeType::urfd:  PrintUrfdPeers(urfdPeers, use_local, std::cout);  break;
 			}
 			break;
 		case 'l':
 			switch (keytype)
 			{
-				case ENodeType::mrefd: PrintMrefdClients(); break;
-				case ENodeType::urfd:  PrintUrfdClients();  break;
+				case ENodeType::mrefd: PrintMrefdClients(mrefdClients, use_local, std::cout); break;
+				case ENodeType::urfd:  PrintUrfdClients(urfdClients, use_local, std::cout);  break;
 			}
 			break;
 		case 'u':
 			switch (keytype)
 			{
-				case ENodeType::mrefd: PrintMrefdUsers(); break;
-				case ENodeType::urfd:  PrintUrfdUsers(); break;
+				case ENodeType::mrefd: PrintMrefdUsers(mrefdUsers, use_local, std::cout); break;
+				case ENodeType::urfd:  PrintUrfdUsers(urfdUsers, use_local, std::cout); break;
 			}
 			break;
 		default:
@@ -574,25 +414,28 @@ int main(int argc, char *argv[])
 				case ENodeType::mrefd:
 					if (mrefdConfig.timestamp)
 					{
-						PrintMrefdConfig();
-						PrintMrefdPeers();
-						PrintMrefdClients();
-						PrintMrefdUsers();
-						break;
+						PrintMrefdConfig(mrefdConfig, std::cout);
+						std::cout << ',';
+						PrintMrefdPeers(mrefdPeers, use_local, std::cout);
+						std::cout << ',';
+						PrintMrefdClients(mrefdClients, use_local, std::cout);
+						std::cout << ',';
+						PrintMrefdUsers(mrefdUsers, use_local, std::cout);
 					}
 					break;
 				case ENodeType::urfd:
 					if (urfdConfig.timestamp)
 					{
-						PrintUrfdConfig();
-						PrintUrfdPeers();
-						PrintUrfdClients();
-						PrintUrfdUsers();
-						break;
+						PrintUrfdConfig(urfdConfig, std::cout);
+						std::cout << ',';
+						PrintUrfdPeers(urfdPeers, use_local, std::cout);
+						std::cout << ',';
+						PrintUrfdClients(urfdClients, use_local, std::cout);
+						std::cout << ',';
+						PrintUrfdUsers(urfdUsers, use_local, std::cout);
 					}
 					break;
 			}
-			break;
 	}
 	std::cout << '}' << std::endl;
 
