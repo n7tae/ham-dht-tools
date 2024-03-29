@@ -19,7 +19,7 @@ Digital voice radio nodes, commonly consisting of a low-powered transceiver, *i.
 
 The definitive source of information about how to use OpenDHT is in the [OpenDHT Wiki](https://github.com/savoirfairelinux/opendht/wiki). The "API Overview" and "Running a node in your program" are great places to start with if you are new to OpenDHT.
 
-An example for a client on the *ham-dht* network is here in this repo. Published data on the network, otherwise known as a `value` is published using a 20-byte hash of a `key`. The `Value` of keys published by *mrefd* and *urfd* are described in the file `dht-values.h`, while two different application in the files `dht-get.cpp` and `dht-spider.cpp` get Values from either type of reflector and use it in various ways:
+An example for a client on the *ham-dht* network is here in this repo. Published data on the network, otherwise known as a `Value` is published using a 20-byte hash of a `key`. The `Value` of keys published by *mrefd* and *urfd* are described in the file `dht-values.h`, while two different application in the files `dht-get.cpp` and `dht-spider.cpp` get Values from either type of reflector and use it in various ways:
 - dht-get gets all or a part of a reflector's document from a working reflector using its designator as a value key, or more properly, a 20-byte hash of the designator. For example, a key might be `M17-USA` or `URF307`.
 - dht-spider uses reflector peer Values to evaluate the peer connection state of a particular module of a chosen reflector.
 - The `dht-help` files are examples of useful subroutines for handling *mrefd* and *urfd* reflectors.
