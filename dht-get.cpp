@@ -187,7 +187,7 @@ int main(int argc, char *argv[])
 	std::string name("TestGet");
 	name += std::to_string(getpid());
 	dht::DhtRunner node;
-	node.run(17171, dht::crypto::generateIdentity(name));
+	node.run(17171, dht::crypto::generateIdentity(name), true, 59973);
 	node.bootstrap(bs, "17171");
 	switch (keytype)
 	{

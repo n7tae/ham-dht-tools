@@ -88,7 +88,7 @@ Here is an example of how an M17 reflector, M17-EFG, would join *ham-dht*:
 const std::string callsign("M17-EFG");
 dht::DhtRunner node;
 
-node.run(17171, dht::crypto::generateIdentity(callsign));
+node.run(17171, dht::crypto::generateIdentity(callsign), true, 59973);
 node.bootstrap("m17-usa.openquad.net", "17171");
 ```
 
