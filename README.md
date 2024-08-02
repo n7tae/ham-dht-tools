@@ -34,6 +34,10 @@ The center of the *ham-dht* network is the data, *i.e.*, the `Value`s, that serv
 3. Clients - A list of its connected clients and and its connection info.
 4. Users - An ordered list of its most recent "last heard" users transmitting through the reflector.
 
+The Configuration and Peers sections are published as *permanent* values. That is, the will reside in the DHT as long as the publisher is still connected to the DHT. If the publisher disconnect, usually by termination, these two published values will no longer be available to other nodes on the DHT network.
+
+The Clients and Users sections are updated when their publishing node changes, but they are *not permanent* and so have a limited lifetime on the DHT network. Another tool is in the works that will *listen* for these sections from a particular publisher. Each time the publisher republished their Clients or Users sections, this listen tool will list the new values.
+
 As seen in the `dht-values.h` file, each section's data is encapsulated in a `struct`, with a final `MSGPACK_DEFINE` statement telling OpenDHT the packing order of the data. The configuration `struct`s for the M17 and URF reflectors are quite different, with the M17 configuration mostly containing strings while the URF configuration contains several arrays. An OpenDHT document can contain most any standard C++ containers, including arrays, lists and maps. The elements of these containers should be basic C++ types, most any numeric types as well as strings. C++ tuples are also fully supported, allowing the the programmer to very easily encapsulate related data in a user-defined object. In fact, the three parts of a reflector's publication having to do with state information (1, 2 and 3) all use tuples.
 
 Near the top of the `dht-values.h` file is a useful `const_expr` subroutine called `toUType` that take an element of a `enum class` and returns its underlying value. Using this allow elements of an array or tuple to be indexed based on an element of an `enum class`. While a resulting C++ expression might look complicated upon first examination, the beauty of using `toUType` is when programming in a context aware development environment like MS Code where *intellisense* is always proving the programmer with allowable choices when selecting a specific member of an array or tuple. It's a best practice to provide a `enum class` with every unique `std::array` or `std::tuple` used in a value part.
@@ -103,18 +107,35 @@ sudo apt install git build-essential
 
 For these target systems using the DHT, connection information is published and updated directly by the target and is available to mvoice in near-realtime. All the mvoice user needs to know is the callsign of the target.
 
-#### Building and installing the OpenDHT library
+#### Installing the OpenDHT development library
 
-OpenDHT is available [here](https://github./com/savoirfairelinux/opendht.git). Building and installing instructions are in the [OpenDHT Wiki](https://github.com/savoirfairelinux/opendht/wiki/Build-the-library). Pascal support and proxy-server support (RESTinio) is not required for these tools and so can be considered optional. With this in mind, this should work on Debian/Ubuntu-based systems:
+Debian 12 and Ubuntu 24.04 can install the library directly:
 
 ```bash
-# Install OpenDHT dependencies
+sudo apt install libopendht-dev
+```
+
+Earlier versions of this library are also available and you can try them. If they give no linking or execution error, then you are good to go. Otherwise you need to compile and install the library.
+
+#### Building and installing the OpenDHT development library
+
+OpenDHT is available [here](https://github./com/savoirfairelinux/opendht.git). Building and installing instructions are in the [OpenDHT Wiki](https://github.com/savoirfairelinux/opendht/wiki/Build-the-library). Pascal support is not required for these tools and so can be considered optional. With this in mind, this should work on Debian/Ubuntu-based systems:
+
+First, install OpenDHT dependencies
+
+```bash
 sudo apt install libncurses5-dev libreadline-dev nettle-dev libgnutls28-dev libargon2-0-dev libmsgpack-dev  libssl-dev libfmt-dev libjsoncpp-dev libhttp-parser-dev libasio-dev cmake pkg-config
+```
 
-# clone the repo
+Then clone the *ham-dht-tools* repo
+
+```baseh
 git clone https://github.com/savoirfairelinux/opendht.git
+```
 
-# build and install
+Finally, build and install the library
+
+```bash
 cd opendht
 mkdir build && cd build
 cmake -DOPENDHT_PYTHON=OFF -DCMAKE_INSTALL_PREFIX=/usr ..
@@ -122,7 +143,7 @@ make
 sudo make install
 ```
 
-See the wiki in the opendht repo if you are interested in retaining either of these. Please note that there is no easy way to uninstall OpenDHT once it's been installed. However, it is based on static header files and libraries and doesn't use any resources except for a small amount of disk space.
+Please note that there is no easy way to uninstall OpenDHT once it's been installed. However, it is based on static header files and libraries and doesn't use any resources except for a small amount of disk space.
 
 ## Building the tools
 
@@ -136,7 +157,7 @@ make
 
 ## Installing the tools
 
-To install, do `make install` and each tool will be copied to `$(BINDIR)` defined in the Makefile. To install to a different location, you can copy `Makefile` to `makefile`, modify the definition of `BINDIR` and then do `make install`, but it may be easier to just copy the executables to your desired folder manually.
+You can install the tools if you like, do `make install` and each tool will be copied to `$(BINDIR)` defined in the Makefile. To install to a different location, you can copy `Makefile` to `makefile`, modify the definition of `BINDIR` and then do `make install`, but it may be easier to just copy the executables to your desired folder manually.
 
 ## Running a tool
 
