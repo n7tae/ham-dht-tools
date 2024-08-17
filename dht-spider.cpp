@@ -236,7 +236,10 @@ int main(int argc, char *argv[])
 	node.run(17171, dht::crypto::generateIdentity(name), true, 59973);
 	node.bootstrap(bs, "17171");
 	if (! onlylist)
+	{
 		std::cout << "Running node using name " << name << " and bootstrapping from " << bs << std::endl;
+		std::cout << "Shared module " << module << " map:" << std::endl;
+	}
 
 	// set up the where condition
 	w.id(isM17 ? toUType(EMrefdValueID::Peers) : toUType(EUrfdValueID::Peers));

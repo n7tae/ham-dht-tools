@@ -34,12 +34,12 @@ static const std::string default_bs("xrf757.openquad.net");
 static dht::Where w;
 static SMrefdConfig1  mrefdConfig;
 static SMrefdPeers1   mrefdPeers;
-static SMrefdClients1 mrefdClients;
-static SMrefdUsers1   mrefdUsers;
+// static SMrefdClients1 mrefdClients;
+// static SMrefdUsers1   mrefdUsers;
 static SUrfdConfig2   urfdConfig;
 static SUrfdPeers1    urfdPeers;
-static SUrfdClients2  urfdClients;
-static SUrfdUsers1    urfdUsers;
+// static SUrfdClients2  urfdClients;
+// static SUrfdUsers1    urfdUsers;
 static SUrfdConfig1   cfg1;
 static SUrfdClients1  cli1;
 
@@ -53,10 +53,8 @@ static void Usage(std::ostream &ostr, const char *comname)
 	ostr << "       If not specified, " << default_bs << " will be used." << std::endl;
 	ostr << "    -s (section) arguments is one of:" << std::endl;
 	ostr << "        c - configuration" << std::endl;
-	ostr << "        l - linked client list" << std::endl;
 	ostr << "        p - peer list" << std::endl;
-	ostr << "        u - user list" << std::endl;
-	ostr << "        If no section is specified, all sections will be output." << std::endl;
+	ostr << "        If no section is specified, both sections will be output." << std::endl;
 	ostr << "    -l will output time values in local time, otherwise gmt is reported." << std::endl;
 }
 
@@ -94,7 +92,7 @@ int main(int argc, char *argv[])
 				Usage(std::cerr, argv[0]);
 			}
 			section = optarg[0];
-			if ('c'!=section && 'l'!=section && 'p'!=section && 'u'!=section)
+			if ('c'!=section && 'p'!=section)
 			{
 				std::cerr << argv[0] << ": " << "You have specified an illegal section!" << std::endl;
 				Usage(std::cerr, argv[0]);
@@ -125,8 +123,8 @@ int main(int argc, char *argv[])
 	const std::string key(argv[optind]);
 	auto keyhash = dht::InfoHash::get(key);
 
-	mrefdConfig.timestamp = mrefdPeers.timestamp = mrefdClients.timestamp = mrefdUsers.timestamp = 0;
-	urfdConfig.timestamp  = urfdPeers.timestamp  = urfdClients.timestamp  = urfdUsers.timestamp  = 0;
+	mrefdConfig.timestamp = mrefdPeers.timestamp = 0;
+	urfdConfig.timestamp  = urfdPeers.timestamp  = 0;
 	cfg1.timestamp = cli1.timestamp = 0;
 
 	ENodeType keytype;
@@ -152,14 +150,6 @@ int main(int argc, char *argv[])
 				case 'p':
 				w.id(toUType(EMrefdValueID::Peers));
 				break;
-
-				case 'l':
-				w.id(toUType(EMrefdValueID::Clients));
-				break;
-
-				case 'u':
-				w.id(toUType(EMrefdValueID::Users));
-				break;
 			}
 			break;
 		case ENodeType::urfd:
@@ -171,14 +161,6 @@ int main(int argc, char *argv[])
 
 				case 'p':
 				w.id(toUType(EUrfdValueID::Peers));
-				break;
-
-				case 'l':
-				w.id(toUType(EUrfdValueID::Clients));
-				break;
-
-				case 'u':
-				w.id(toUType(EUrfdValueID::Users));
 				break;
 			}
 			break;
@@ -218,34 +200,6 @@ int main(int argc, char *argv[])
 									{
 										if (rdat.sequence > mrefdPeers.sequence)
 											mrefdPeers = dht::Value::unpack<SMrefdPeers1>(*v);
-									}
-								}
-								break;
-							case toUType(EMrefdValueID::Clients):
-								if (0 == v->user_type.compare(MREFD_CLIENTS_1))
-								{
-									auto rdat = dht::Value::unpack<SMrefdClients1>(*v);
-									if (rdat.timestamp > mrefdClients.timestamp)
-									{
-										mrefdClients = dht::Value::unpack<SMrefdClients1>(*v);
-									} else if (rdat.timestamp==mrefdClients.timestamp)
-									{
-										if (rdat.sequence > mrefdClients.sequence)
-											mrefdClients = dht::Value::unpack<SMrefdClients1>(*v);
-									}
-								}
-								break;
-							case toUType(EMrefdValueID::Users):
-								if (0 == v->user_type.compare(MREFD_USERS_1))
-								{
-									auto rdat = dht::Value::unpack<SMrefdUsers1>(*v);
-									if (rdat.timestamp > mrefdPeers.timestamp)
-									{
-										mrefdUsers = dht::Value::unpack<SMrefdUsers1>(*v);
-									} else if (rdat.timestamp==mrefdUsers.timestamp)
-									{
-										if (rdat.sequence > mrefdUsers.sequence)
-											mrefdUsers = dht::Value::unpack<SMrefdUsers1>(*v);
 									}
 								}
 								break;
@@ -307,47 +261,6 @@ int main(int argc, char *argv[])
 									}
 								}
 								break;
-							case toUType(EUrfdValueID::Clients):
-								if (0 == v->user_type.compare(URFD_CLIENTS_1))
-								{
-									auto rdat = dht::Value::unpack<SUrfdClients1>(*v);
-									if (rdat.timestamp > cli1.timestamp)
-									{
-										cli1 = dht::Value::unpack<SUrfdClients1>(*v);
-									} else if (rdat.timestamp==cli1.timestamp)
-									{
-										if (rdat.sequence > cli1.sequence)
-											cli1 = dht::Value::unpack<SUrfdClients1>(*v);
-									}
-									CopyUrfdClients1to2(cli1, urfdClients);
-								}
-								else if (0 == v->user_type.compare(URFD_CLIENTS_2))
-								{
-									auto rdat = dht::Value::unpack<SUrfdClients2>(*v);
-									if (rdat.timestamp > urfdClients.timestamp)
-									{
-										urfdClients = dht::Value::unpack<SUrfdClients2>(*v);
-									} else if (rdat.timestamp==urfdClients.timestamp)
-									{
-										if (rdat.sequence > urfdClients.sequence)
-											urfdClients = dht::Value::unpack<SUrfdClients2>(*v);
-									}
-								}
-								break;
-							case toUType(EUrfdValueID::Users):
-								if (0 == v->user_type.compare(URFD_USERS_1))
-								{
-									auto rdat = dht::Value::unpack<SUrfdUsers1>(*v);
-									if (rdat.timestamp > mrefdPeers.timestamp)
-									{
-										urfdUsers = dht::Value::unpack<SUrfdUsers1>(*v);
-									} else if (rdat.timestamp==urfdUsers.timestamp)
-									{
-										if (rdat.sequence > urfdUsers.sequence)
-											urfdUsers = dht::Value::unpack<SUrfdUsers1>(*v);
-									}
-								}
-								break;
 						}
 					}
 					else
@@ -394,20 +307,6 @@ int main(int argc, char *argv[])
 				case ENodeType::urfd:  PrintUrfdPeers(urfdPeers, use_local, std::cout);  break;
 			}
 			break;
-		case 'l':
-			switch (keytype)
-			{
-				case ENodeType::mrefd: PrintMrefdClients(mrefdClients, use_local, std::cout); break;
-				case ENodeType::urfd:  PrintUrfdClients(urfdClients, use_local, std::cout);  break;
-			}
-			break;
-		case 'u':
-			switch (keytype)
-			{
-				case ENodeType::mrefd: PrintMrefdUsers(mrefdUsers, use_local, std::cout); break;
-				case ENodeType::urfd:  PrintUrfdUsers(urfdUsers, use_local, std::cout); break;
-			}
-			break;
 		default:
 			switch (keytype)
 			{
@@ -417,10 +316,6 @@ int main(int argc, char *argv[])
 						PrintMrefdConfig(mrefdConfig, std::cout);
 						std::cout << ',';
 						PrintMrefdPeers(mrefdPeers, use_local, std::cout);
-						std::cout << ',';
-						PrintMrefdClients(mrefdClients, use_local, std::cout);
-						std::cout << ',';
-						PrintMrefdUsers(mrefdUsers, use_local, std::cout);
 					}
 					break;
 				case ENodeType::urfd:
@@ -429,10 +324,6 @@ int main(int argc, char *argv[])
 						PrintUrfdConfig(urfdConfig, std::cout);
 						std::cout << ',';
 						PrintUrfdPeers(urfdPeers, use_local, std::cout);
-						std::cout << ',';
-						PrintUrfdClients(urfdClients, use_local, std::cout);
-						std::cout << ',';
-						PrintUrfdUsers(urfdUsers, use_local, std::cout);
 					}
 					break;
 			}

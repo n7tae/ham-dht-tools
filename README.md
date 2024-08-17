@@ -56,6 +56,8 @@ For the two reflectors that currently use *ham-dht* parts 1 and 2 are published 
 
 The transient *vs.* permanent state of the different parts of reflector's document are easily handled by a client interested in a reflector's document. Using the `get()` OpenDHT call is a one-shot retrieval of a document and this would be the appropriate way to retrieve either parts 1 or 2. Clients interested in the more transient parts 3 and 4 might wish to use OpenDHT's `listen()` and so retrieve those parts every time a reflector republishes them.
 
+The tools all use `get()` to retrieve data from the *ham-dht*. A tool that uses `listen()` to monitor transient data is in the planning stage.
+
 Finally, there is the possibility that a `get()` might receive more that one published Value, so each part also contains a std::time_t value so that the client can recognize the most recently published Value.
 
 ## Tools
@@ -79,7 +81,7 @@ To see how *dht-get* is used, type `./dht-get` and it will print a usage message
 
 *dht-spider* is a command line tool that will *walk* the dht network when pointed to a specific module of a reflector. It will follow interlinked reflectors until all connected reflectors can be listed in a simple diagram. Here is a hypothetical result when probing Module A of a small interlinked system:
 
-```bash
+```
 someone@somesystem:~$ ./dht-spider m17-mmm a
          =======
 M17-AAA | =   + | AAA
@@ -100,7 +102,7 @@ Here, three reflectors (M17-AAA, M17-MMM and M17-ZZZ) are sharing module A, but 
 
 Several packages are needed;
 
-```bash
+```
 sudo apt install git build-essential
 
 ### Distributed Hash Table (OpenDHT)
@@ -111,7 +113,7 @@ For these target systems using the DHT, connection information is published and 
 
 Debian 12 and Ubuntu 24.04 can install the library directly:
 
-```bash
+```
 sudo apt install libopendht-dev
 ```
 
@@ -123,19 +125,19 @@ OpenDHT is available [here](https://github./com/savoirfairelinux/opendht.git). B
 
 First, install OpenDHT dependencies
 
-```bash
+```
 sudo apt install libncurses5-dev libreadline-dev nettle-dev libgnutls28-dev libargon2-0-dev libmsgpack-dev  libssl-dev libfmt-dev libjsoncpp-dev libhttp-parser-dev libasio-dev cmake pkg-config
 ```
 
 Then clone the *ham-dht-tools* repo
 
-```baseh
+```
 git clone https://github.com/savoirfairelinux/opendht.git
 ```
 
 Finally, build and install the library
 
-```bash
+```
 cd opendht
 mkdir build && cd build
 cmake -DOPENDHT_PYTHON=OFF -DCMAKE_INSTALL_PREFIX=/usr ..
@@ -149,7 +151,7 @@ Please note that there is no easy way to uninstall OpenDHT once it's been instal
 
 After the OpenDHT library has been installed, clone and make the tools:
 
-```bash
+```
 git clone https://github.com/n7tae/ham-dht-tools.git
 cd ham-dht-tools
 make
