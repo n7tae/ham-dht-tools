@@ -15,6 +15,8 @@ Digital voice radio nodes, commonly consisting of a low-powered transceiver, *i.
 
 ## The *ham-dht* implementation
 
+The *ham-dht* uses **OpenDHT**, a C++17-based development library implementation of a distributed hash table.
+
 ### Examples and information
 
 The definitive source of information about how to use OpenDHT is in the [OpenDHT Wiki](https://github.com/savoirfairelinux/opendht/wiki). The "API Overview" and "Running a node in your program" are great places to start with if you are new to OpenDHT.
@@ -24,29 +26,19 @@ An example for a client on the *ham-dht* network is here in this repo. Published
 - dht-spider uses reflector peer Values to evaluate the peer connection state of a particular module of a chosen reflector.
 - The `dht-help` files are examples of useful subroutines for handling *mrefd* and *urfd* reflectors.
 
-Examples of OpenDHT C++ code for servers on the *ham-dht* network are [*mrefd*][https://github.com/n7tae/mrefd], and [*urfd*](https://github.com/n7tae/urfd). All of the code having to do with the *ham-dht* network are in `mrefd/reflector.{h,cpp}` and `urfd/reflector/Reflector.{h,cpp}` files, respectively.
+Examples of OpenDHT C++ code for servers on the *ham-dht* network are [*mrefd*](https://github.com/n7tae/mrefd), and [*urfd*](https://github.com/n7tae/urfd). All of the code having to do with the *ham-dht* network are in `mrefd/reflector.{h,cpp}` and `urfd/reflector/Reflector.{h,cpp}` files, respectively.
 
 ### Publication data, the heart of any dht-network
 
-The center of the *ham-dht* network is the data, *i.e.*, the `Value`s, that servers publish. So far, two reflectors use *ham-dht*, *mrefd* and *urfd*, and in fact there are two slightly different versions of *urfd* Values that might be encountered. The four-part documents that each reflector publishes on the net are defined in the `dht-values.h` file in this repo. The four sections of a reflector *ham-dht* document are:
+The center of the *ham-dht* network is the data, *i.e.*, the Values, that servers publish. So far, two reflectors use *ham-dht*, *mrefd* and *urfd*, and in fact there are two slightly different versions of *urfd* Values that might be encountered. The four-part documents that each reflector publishes on the net are defined in the `dht-values.h` file in this repo. The four sections of a reflector *ham-dht* document are:
 1. Configuration - This is all run-time configuration information that could be useful to a client, like the its IP address(es), the url of its dashboard, and its modules configuration.
 2. Peers - A list of its connected peers. This list also contains the list of shared modules, and how long the peer has been connected.
 3. Clients - A list of its connected clients and and its connection info.
 4. Users - An ordered list of its most recent "last heard" users transmitting through the reflector.
 
-The Configuration and Peers sections are published as *permanent* values. That is, the will reside in the DHT as long as the publisher is still connected to the DHT. If the publisher disconnect, usually by termination, these two published values will no longer be available to other nodes on the DHT network.
+The Configuration and Peers sections are published as *permanent* values. That is, the will reside in the DHT as long as the publisher is still connected to the DHT. If the publisher disconnect, usually by termination, within short time, these two published values will no longer be available to other nodes on the DHT network.
 
-The Clients and Users sections are updated when their publishing node changes, but they are *not permanent* and so have a limited lifetime on the DHT network. Another tool is in the works that will *listen* for these sections from a particular publisher. Each time the publisher republished their Clients or Users sections, this listen tool will list the new values.
-
-As seen in the `dht-values.h` file, each section's data is encapsulated in a `struct`, with a final `MSGPACK_DEFINE` statement telling OpenDHT the packing order of the data. The configuration `struct`s for the M17 and URF reflectors are quite different, with the M17 configuration mostly containing strings while the URF configuration contains several arrays. An OpenDHT document can contain most any standard C++ containers, including arrays, lists and maps. The elements of these containers should be basic C++ types, most any numeric types as well as strings. C++ tuples are also fully supported, allowing the the programmer to very easily encapsulate related data in a user-defined object. In fact, the three parts of a reflector's publication having to do with state information (1, 2 and 3) all use tuples.
-
-Near the top of the `dht-values.h` file is a useful `const_expr` subroutine called `toUType` that take an element of a `enum class` and returns its underlying value. Using this allow elements of an array or tuple to be indexed based on an element of an `enum class`. While a resulting C++ expression might look complicated upon first examination, the beauty of using `toUType` is when programming in a context aware development environment like MS Code where *intellisense* is always proving the programmer with allowable choices when selecting a specific member of an array or tuple. It's a best practice to provide a `enum class` with every unique `std::array` or `std::tuple` used in a value part.
-
-In addition to the user defined data that make up a published value, there are two other values if importance:
-1. `dht::Value::user_type` is a `std::string` and by *ham-dht* convention is used to identify the version release of the value part.
-2. `dht::Value::id` is a 64-bit unsigned and identifies the Value part. (This cannot be zero.) This id is important because in a call to `get()` or `listen()`, you can specify the part you want and then your call will only receive that part. This is specified in a dht::Where object that is defined and used in both *dht-get* and *dht-spider*.
-
-Note that these two Value members are outside the packed portion of the Value and so are available before unpacking. These two values are used to ensure that the packed portion of the Value is unpacked into the correct `struct`.
+The Clients and Users sections are updated when their publishing node changes, but they are *not* permanent and so have a limited lifetime on the DHT network. Another tool is in the works that will *listen* for these sections from a particular publisher. Each time the publisher republished their Clients or Users sections, this listen tool will list the new values.
 
 ### Publication lifetimes
 
@@ -64,25 +56,30 @@ Finally, there is the possibility that a `get()` might receive more that one pub
 
 So far there are three tools, several more are planned.
 
-### dht-get
+### *dht-get*
 
-*dht-get* is a command line tool that will print a section, or all sections, of a target's dht document. For a reflector there are four sections of its document:
+*dht-get* is a command line tool that will print a section, or two sections, of a target's dht document. For a reflector there are four **permanent** sections of its document:
 
 1. The running configuration
 2. The current list of peers
-3. The current list of linked (*i.e.*, connected) clients
-4. The *last heard* users list
 
-Command lines options allow you specify a specific section, or, if you don't specify a specific section, all sections will be printed. Other options allow you to bootstrap into the *ham-dht* at any node already connected to the *ham-dht*. If you don't specify a bootstrap, *dht-get* will try to bootstrap from a default node. Other options allow you to control how times are displayed (local time or GMT) and whether you want a human readable output, or a JSON output.
+Command lines options allow you specify a specific section, or, if you don't specify a specific section, both sections will be printed. Other options allow you to bootstrap into the *ham-dht* at any node already connected to the *ham-dht*. If you don't specify a bootstrap, *dht-get* will try to bootstrap from a default node. Other options allow you to control how times are displayed (local time or GMT).
 
-To see how *dht-get* is used, type `./dht-get` and it will print a usage message.
+To see how *dht-get* is used, type `./dht-get` and it will print a usage message. `dht-get` prints the result as a raw json object. To pretty it up, pipe the output to *jq*:
 
-### dht-spider
+```
+./dht-get m17-m17 | jq .
+```
+
+Don't forget the period at the end. If you don't have *jq*, you can easily install it: `sudo apt install jq`
+
+### *dht-spider*
 
 *dht-spider* is a command line tool that will *walk* the dht network when pointed to a specific module of a reflector. It will follow interlinked reflectors until all connected reflectors can be listed in a simple diagram. Here is a hypothetical result when probing Module A of a small interlinked system:
 
 ```
-someone@somesystem:~$ ./dht-spider m17-mmm a
+me@mycomputer:~$ ./dht-spider m17-mmm a
+Shared module A map:
          =======
 M17-AAA | =   + | AAA
 M17-MMM |   = + | MMM
@@ -94,34 +91,44 @@ M17-ZZZ | + + = | ZZZ
 ```
 Here, three reflectors (M17-AAA, M17-MMM and M17-ZZZ) are sharing module A, but there is a problem: ZZZ is interlinked to both AAA and MMM, but AAA is not interlinked with MMM. This means that users keying up on AAA won't be heard by users on MMM and *vis versa*.
 
-### get-config-params
+### *get-config-params*
 
-*get-config-params* is a simple bash script that uses both *dht-spider* and *dht-get* to print most any configuration parameter for all the reflectors found with *dht-spider*.
+*get-config-params* is a simple bash script that uses both *dht-spider* and *dht-get* to print most any configuration parameter for all the reflectors found within a connected group. For example, you can retrieve the administrative emails of all the reflectors of shared module.
 
-## Required packages
+Using the hypothetical shared group above, we can get the adminstrative emails of each reflector by specifying a starting module and the item of interest:
 
-Several packages are needed;
+```
+me@mycomputer:~/ham-dht-tools$ ./get-config-params m17-mmm a email
+M17-AAA sneezy@alergicshamclub.org
+M17-MMM doc@mdhamclub.com
+M17-ZZZ sleepy@quiethams.org
+```
+
+## building the tools
+
+Several packages are needed:
 
 ```
 sudo apt install git build-essential
+```
 
-### Distributed Hash Table (OpenDHT)
+### The OpenDHT development library
 
-For these target systems using the DHT, connection information is published and updated directly by the target and is available to mvoice in near-realtime. All the mvoice user needs to know is the callsign of the target.
+There are two choices:
 
 #### Installing the OpenDHT development library
 
-Debian 12 and Ubuntu 24.04 can install the library directly:
+On Debian 12 and Ubuntu 24.04 or newer, you can install the library directly:
 
 ```
 sudo apt install libopendht-dev
 ```
 
-Earlier versions of this library are also available and you can try them. If they give no linking or execution error, then you are good to go. Otherwise you need to compile and install the library.
+Earlier versions of this library are available and *may* work. If the tools build without errors and have no execution errors, then you are good to go. Otherwise you need to uninstall that library and compile and install it yourself.
 
 #### Building and installing the OpenDHT development library
 
-OpenDHT is available [here](https://github./com/savoirfairelinux/opendht.git). Building and installing instructions are in the [OpenDHT Wiki](https://github.com/savoirfairelinux/opendht/wiki/Build-the-library). Pascal support is not required for these tools and so can be considered optional. With this in mind, this should work on Debian/Ubuntu-based systems:
+OpenDHT is available [here](https://github./com/savoirfairelinux/opendht.git). Complete building and installing instructions are in the [OpenDHT Wiki](https://github.com/savoirfairelinux/opendht/wiki/Build-the-library). Pascal and restinio support is not required for these tools and so can be considered optional. With this in mind, this should work on Debian/Ubuntu-based systems:
 
 First, install OpenDHT dependencies
 
@@ -145,7 +152,7 @@ make
 sudo make install
 ```
 
-Please note that there is no easy way to uninstall OpenDHT once it's been installed. However, it is based on static header files and libraries and doesn't use any resources except for a small amount of disk space.
+Please note that there is no easy way to uninstall OpenDHT once it's been installed. However, you mostly building a development library and it is based on static header files and libraries and doesn't use any resources except for a small amount of disk space.
 
 ## Building the tools
 
