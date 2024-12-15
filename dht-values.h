@@ -143,15 +143,13 @@ struct SMrefdUsers1 // user_type is MREFD_USERS_1
 #define URFD_USERS_1   "urfd-users-1"
 #define URFD_CONFIG_1  "urfd-config-1"
 #define URFD_CLIENTS_1 "urfd-clients-1"
-#define URFD_CONFIG_2  "urfd-config-2"
-#define URFD_CLIENTS_2 "urfd-clients-2"
 
 // dht::Value::id of the different parts of the urfd document
 // can be assigned any unsigned value except 0
 // more parts can be added, but don't change the value of any existing part
 // using toUType, you can set or query a user_type to determine the value part
 // this can be done before unpacking the MSGPACK
-enum class EUrfdValueID : uint64_t { Config=1, Peers=2, Clients=3, Users=4 };
+enum class EUrfdValueID : uint64_t { Config=1, Peers=2 };
 
 // the following enum classes can be used to reference a particular value in a fixed array
 // 'SIZE' has to be last value for these scoped enums as this is used to declare these arrays
@@ -180,22 +178,6 @@ struct SUrfdConfig1 // user_type is URFD_CONFIG_1
 	MSGPACK_DEFINE(timestamp, callsign, ipv4addr, ipv6addr, modules, transcodedmods, url, email, sponsor, country, version, almod, ysffreq, refid, g3enabled, port, description)
 };
 
-enum class EUrfdPorts2 : unsigned { dcs, dextra, dmrplus, dplus, dsd, m17, mmdvm, nxdn, p25, urf, ysf, SIZE };
-
-struct SUrfdConfig2
-{
-	std::time_t timestamp;
-	std::string callsign, ipv4addr, ipv6addr, modules, transcodedmods, url, email, sponsor, country, version;
-	std::array<uint16_t, toUType(EUrfdPorts2::SIZE)> port;
-	std::array<char, toUType(EUrfdAlMod::SIZE)> almod;
-	std::array<unsigned long, toUType(EUrfdTxRx::SIZE)> ysffreq;
-	std::array<unsigned, toUType(EUrfdRefId::SIZE)> refid;
-	std::unordered_map<char, std::string> description;
-	bool g3enabled;
-
-	MSGPACK_DEFINE(timestamp, callsign, ipv4addr, ipv6addr, modules, transcodedmods, url, email, sponsor, country, version, almod, ysffreq, refid, g3enabled, port, description)
-};
-
 using UrfdPeerTuple = std::tuple<std::string, std::string, std::time_t>;
 enum class EUrfdPeerFields { Callsign, Modules, ConnectTime };
 struct SUrfdPeers1
@@ -203,39 +185,6 @@ struct SUrfdPeers1
 	std::time_t timestamp;
 	unsigned int sequence;
 	std::list<UrfdPeerTuple> list;
-
-	MSGPACK_DEFINE(timestamp, sequence, list)
-};
-
-using UrfdClientTuple1 = std::tuple<std::string, std::string, char, std::time_t, std::time_t>;
-enum class EUrfdClientFields1 { Callsign, Ip, Module, ConnectTime, LastHeardTime };
-struct SUrfdClients1
-{
-	std::time_t timestamp;
-	unsigned int sequence;
-	std::list<UrfdClientTuple1> list;
-
-	MSGPACK_DEFINE(timestamp, sequence, list)
-};
-
-using UrfdClientTuple2 = std::tuple<std::string, std::string, std::string, char, std::time_t, std::time_t>;
-enum class EUrfdClientFields2 { Callsign, Protocol, Ip, Module, ConnectTime, LastHeardTime };
-struct SUrfdClients2
-{
-	std::time_t timestamp;
-	unsigned int sequence;
-	std::list<UrfdClientTuple2> list;
-
-	MSGPACK_DEFINE(timestamp, sequence, list)
-};
-
-using UrfdUserTuple = std::tuple<std::string, std::string, char, std::string, std::time_t>;
-enum class EUrfdUserFields { Callsign, ViaNode, OnModule, ViaPeer, LastHeardTime };
-struct SUrfdUsers1
-{
-	std::time_t timestamp;
-	unsigned int sequence;
-	std::list<UrfdUserTuple> list;
 
 	MSGPACK_DEFINE(timestamp, sequence, list)
 };

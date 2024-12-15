@@ -3,3 +3,5 @@
 .vscode
 dht-get
 dht-spider
+make-m17-host-file
+make-m17-hosts

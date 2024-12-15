@@ -1,4 +1,4 @@
-# Copyright (c) 2022 by Thomas A. Early N7TAE
+# Copyright (c) 2022,2024 by Thomas A. Early N7TAE
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -27,13 +27,13 @@ BINDIR = /usr/local/bin
 CFGDIR = /usr/local/etc
 
 CFLAGS = -W -std=c++17
-LDFLAGS = -pthread -lopendht
+EXECS  = dht-get dht-spider make-m17-host-file
 
 ifeq ($(debug), true)
 CFLAGS += -ggdb3
 endif
 
-all : dht-get dht-spider
+all : $(EXECS)
 
 dht-get : dht-get.cpp dht-helpers.cpp
 	$(CXX) $(CFLAGS) -o $@ $^ -pthread -lopendht
@@ -41,13 +41,16 @@ dht-get : dht-get.cpp dht-helpers.cpp
 dht-spider : dht-spider.cpp
 	$(CXX) $(CFLAGS) -o $@ $^ -pthread -lopendht
 
+make-m17-host-file : make-m17-host-file.cpp dht-helpers.cpp
+	$(CXX) $(CFLAGS) -o $@ $^ -lcurl -pthread -lopendht
+
 clean :
-	$(RM) *.o *.d dht-get dht-spider
+	$(RM) *.o *.d $(EXECS)
 
 -include $(DEPS)
 
 install :
-	cp -f dht-{get,spider} $(BINDIR)
+	cp -f $(EXECS) $(BINDIR)
 
 uninstall :
-	rm -f $(CFGDIR)/dht-{get,spider}
+	rm -f $(EXECS)

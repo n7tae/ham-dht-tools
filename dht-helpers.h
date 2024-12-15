@@ -30,11 +30,6 @@ extern void PrintMrefdUsers(const SMrefdUsers1 &mrefdUsers, bool use_local, std:
 #endif
 
 #ifdef USE_URFD_VALUES
-extern void CopyUrfdConfigure1to2(const struct SUrfdConfig1 &c1, struct SUrfdConfig2 &c2);
-extern void CopyUrfdClients1to2(const struct SUrfdClients1 &c1, struct SUrfdClients2 &c2);
-
-extern void PrintUrfdConfig(const SUrfdConfig2 urfdConfig, std::ostream &stream);
+extern void PrintUrfdConfig(const SUrfdConfig1 urfdConfig, std::ostream &stream);
 extern void PrintUrfdPeers(const SUrfdPeers1 &urfdPeers, bool use_local, std::ostream &stream);
-extern void PrintUrfdClients(const SUrfdClients2 &urfdClients, bool use_local, std::ostream &stream);
-extern void PrintUrfdUsers(const SUrfdUsers1 &urfdUsers, bool use_local, std::ostream &stream);
 #endif

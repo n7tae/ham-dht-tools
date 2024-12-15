@@ -34,14 +34,8 @@ static const std::string default_bs("xrf757.openquad.net");
 static dht::Where w;
 static SMrefdConfig1  mrefdConfig;
 static SMrefdPeers1   mrefdPeers;
-// static SMrefdClients1 mrefdClients;
-// static SMrefdUsers1   mrefdUsers;
-static SUrfdConfig2   urfdConfig;
 static SUrfdPeers1    urfdPeers;
-// static SUrfdClients2  urfdClients;
-// static SUrfdUsers1    urfdUsers;
-static SUrfdConfig1   cfg1;
-static SUrfdClients1  cli1;
+static SUrfdConfig1   urfdConfig;
 
 enum class ENodeType { urfd, mrefd };
 
@@ -125,7 +119,6 @@ int main(int argc, char *argv[])
 
 	mrefdConfig.timestamp = mrefdPeers.timestamp = 0;
 	urfdConfig.timestamp  = urfdPeers.timestamp  = 0;
-	cfg1.timestamp = cli1.timestamp = 0;
 
 	ENodeType keytype;
 	if (0 == key.compare(0, 4, "M17-"))
@@ -166,7 +159,7 @@ int main(int argc, char *argv[])
 			break;
 	}
 
-	std::string name("TestGet");
+	std::string name("HamGet");
 	name += std::to_string(getpid());
 	dht::DhtRunner node;
 	node.run(17171, dht::crypto::generateIdentity(name), true, 59973);
@@ -236,15 +229,8 @@ int main(int argc, char *argv[])
 								if (0 == v->user_type.compare(URFD_CONFIG_1))
 								{
 									auto rdat = dht::Value::unpack<SUrfdConfig1>(*v);
-									if (rdat.timestamp > cfg1.timestamp)
-										cfg1 = dht::Value::unpack<SUrfdConfig1>(*v);
-									CopyUrfdConfigure1to2(cfg1, urfdConfig);
-								}
-								else if (0 == v->user_type.compare(URFD_CONFIG_2))
-								{
-									auto rdat = dht::Value::unpack<SUrfdConfig2>(*v);
 									if (rdat.timestamp > urfdConfig.timestamp)
-										urfdConfig = dht::Value::unpack<SUrfdConfig2>(*v);
+										urfdConfig = dht::Value::unpack<SUrfdConfig1>(*v);
 								}
 								break;
 							case toUType(EUrfdValueID::Peers):
