@@ -28,7 +28,7 @@
 #include "dht-values.h"
 #include "dht-helpers.h"
 
-static const std::string Version("1.0.0");
+static const std::string Version("1.0.1");
 std::string hostname("xrf757.openquad.net");
 static bool got_data;
 static bool running;
