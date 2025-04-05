@@ -164,11 +164,11 @@ int main (int argc, char *argv[])
 
 	// downlaod and parse the mrefd and urf json file
 	std::stringstream ss;
-	ReadM17Json("https://dvref.com/mrefd/json/?format=json", ss);
+	ReadM17Json("https://dvref.com/mrefd/reflectors/", ss);
 	json mref = json::parse(ss.str());
 	ss.str(std::string());
 
-	ReadM17Json("https://dvref.com/urfd/json/?format=json", ss);
+	ReadM17Json("https://dvref.com/urfd/reflectors/", ss);
 	json urf = json::parse(ss.str());
 	ss.str(std::string());
 
