@@ -6,12 +6,12 @@ Tools for finding data on the ham radio network distributed hash table called *h
 
 Digital voice radio nodes, commonly consisting of a low-powered transceiver, *i.e.*, hot-spot, and handheld radio can connect to other nodes from around the world using the internet to complete the connection. Up to now, software running on these hot-spot relied on host files that are tables of data that are supplied and updated by third parties. Currently, this is in the form of simple lookup tables that tie a target destination in the form of a unique callsign or designation to an IP address. They are simple, flat files, sometimes called host files. Sometimes these files might contain some other limited information, like port numbers or handshaking keywords. The *ham-dht* network is a way for nodes to get the connection information for any target *directly from the target* and so, eliminate the third party. Using a distributed hash table network provides several important advantages over a host table:
 
-- ***The dht is guaranteed to be current and accurate.*** The information needed by the client is published directly by the target server. If the configuration of the server changes, that updated information is available immediately, not when some third gatekeeper decides to update a host file. Included with this feature, when a target goes silent, its published information will also become unavailable. The client need not to even attempt to connect if its publication(s) aren't available.
-- ***Connection information isn't limited to just a few pieces of data.*** For example, a complex server node, like a transcoding reflector can publish which modules are available and which of those modules are transcoded. Realtime state information is also available, like the list of peers, clients and users. In fact, a published document is usually broken up into sections and published as need for each section. A client can just ask for a particular section of a published document, or the whole document. Further, a client can do a simple *get* where a request is usually completed in a second or two, or the client can do a *listen* and will receive a new document or section whenever it changes. Doing a *listen* is especially useful if a client is interested in state information.
+- ***The dht is guaranteed to be current and accurate.*** The information needed by the client is published directly by the target server. If the configuration of the server changes, that updated information is available immediately, not when some third gatekeeper decides to update a host file. Included with this feature, when a target goes silent, its published information will also become unavailable. If the server is using *ham-dht* and the data for that server is currently not available, then the server is not running.
+- ***Connection information isn't limited to just a few pieces of data.*** For example, a complex server node, like a transcoding reflector can publish which modules are available and which of those modules are transcoded. Realtime state information is also available, like the list of peers, clients and users. In fact, a published document is usually broken up into sections and published as needed for each section. A client can just ask for a particular section of a published document, or the whole document. Further, a client can do a simple *get* where a request is usually completed in a second or two, or the client can do a *listen* and will receive a new document or section whenever it changes. Doing a *listen* is especially useful if a client is interested in state information.
 - ***A distributed hash table network is a perfect match for ham users:***
-	- Information is published by individual nodes and available to any other node on the network.
-	- It works very similar to a mesh network. It doesn't rely on a single conduit for information to get from a server to a client. If a node becomes unavailable, the network continues to function. No node has all the data, and all the data is available to any node. Copies of publications are kept by by a few nodes "evenly" distributed throughout the network, making the availability of data fault tolerant, self-healing, and and protected from malicious attacks.
-	- The API for OpenDHT is both flexible and easy to use. Published data is easily packaged in most standard C++ containers. Text, numeric or any binary data can be published and the actual documents are packed efficiently using a simple interface.
+- Information is published by individual nodes and available to any other node on the network.
+- It works very similar to a mesh network. It doesn't rely on a single conduit for information to get from a server to a client. If a node becomes unavailable, the network continues to function. No node has all the data, and all the data is available to any node. Copies of publications are kept by by a few nodes "evenly" distributed throughout the network, making the availability of data fault tolerant, self-healing, and and protected from malicious attacks.
+- The API for OpenDHT is both flexible and easy to use. Published data is easily packaged in most standard C++ containers. Text, numeric or any binary data can be published and the actual documents are packed efficiently using a simple interface.
 
 ## The *ham-dht* implementation
 
@@ -64,7 +64,7 @@ Type `./make-m17-host-file --help` for options. This program will print to stdou
 
 ### *dht-get*
 
-*dht-get* is a command line tool that will print a section, or two sections, of a target's dht document. For a reflector there are four **permanent** sections of its document:
+*dht-get* is a command line tool that will print a section, or two sections, of a target's dht document. For a reflector there are two **permanent** sections of its document:
 
 1. The running configuration
 2. The current list of peers
@@ -101,7 +101,7 @@ Here, three reflectors (M17-AAA, M17-MMM and M17-ZZZ) are sharing module A, but 
 
 *get-config-params* is a simple bash script that uses both *dht-spider* and *dht-get* to print most any configuration parameter for all the reflectors found within a connected group. For example, you can retrieve the administrative emails of all the reflectors of shared module.
 
-Using the hypothetical shared group above, we can get the adminstrative emails of each reflector by specifying a starting module and the item of interest:
+Using the hypothetical shared group above, we can get the administrative emails of each reflector by specifying a starting module and the item of interest:
 
 ```
 me@mycomputer:~/ham-dht-tools$ ./get-config-params m17-mmm a email
