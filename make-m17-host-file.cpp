@@ -28,7 +28,7 @@
 #include "dht-values.h"
 #include "dht-helpers.h"
 
-static const std::string Version("1.0.2");
+static const std::string Version("1.1.0");
 std::string hostname("xrf757.openquad.net");
 static bool got_data;
 static bool running;
@@ -182,16 +182,14 @@ int main (int argc, char *argv[])
 	std::cout << "#   1) If 'Modules' is null, it can't be determined, or," << std::endl;
 	std::cout << "#   2) if 'Modules' is NOT null, there are no special modules." << std::endl;
 	std::cout << '#' << std::endl;
-	std::cout << "# If the last column says 'Ham-DHT', the probabilty that the listing is" << std::endl;
-	std::cout << "# accurate and that the reflector is currently running is very near 100%." << std::endl;
-	std::cout << '#' << std::endl;
 	std::cout << std::left << std::setw(8)  << "#Refl"
 			  << std::left << std::setw(16) << "IPv4Address"
 			  << std::left << std::setw(40) << "IPv6Address"
 			  << std::left << std::setw(27) << "Modules"
 			  << std::left << std::setw(27) << "SpecialModules"
 			  << std::left << std::setw(7)  << "Port"
-			  << std::left << std::setw(10) << "Source" << std::endl;
+			  << std::left << std::setw(11) << "Source" 
+			  << std::left <<                  "Dashboard-URL" << std::endl;
 
 	w.id(toUType(EMrefdValueID::Config));
 	// iterate through reflectors array
@@ -211,6 +209,7 @@ int main (int argc, char *argv[])
 		std::string mods("null");
 		std::string smods("null");
 		uint16_t port = ref["port"];
+		std::string url(ref["url"]);
 		auto keyhash = dht::InfoHash::get(refcs);
 		mrefdConfig.timestamp = 0;
 		node.get(
@@ -266,6 +265,8 @@ int main (int argc, char *argv[])
 				mods.assign(mrefdConfig.modules);
 			if (mrefdConfig.encryptedmods.size())
 				smods.assign(mrefdConfig.encryptedmods);
+			if (mrefdConfig.url.size())
+				url.assign(mrefdConfig.url);
 			port = mrefdConfig.port;
 			src.assign("Ham-DHT");
 		}
@@ -275,7 +276,8 @@ int main (int argc, char *argv[])
 				  << std::left << std::setw(27) << mods
 				  << std::left << std::setw(27) << smods
 				  << std::left << std::setw(7)  << port
-				  << std::left << std::setw(10) << src << std::endl;
+				  << std::left << std::setw(11) << src
+				  << std::left <<                  url << std::endl;
 	}
 
 	// now for the URF reflectors
@@ -291,7 +293,7 @@ int main (int argc, char *argv[])
 		std::string ipv6(GET_STRING(ref["ipv6"]));
 
 		// skip the bulls*it
-		if (0 == ipv4.compare("127.0.0.1") || 0 == ipv4.compare("0.0.0.0") || 0 == ipv4.compare("::1") || 0 == ipv6.compare("::"))
+		if (0 == ipv4.compare("127.0.0.1") || 0 == ipv4.compare("0.0.0.0") || 0 == ipv6.compare("::1") || 0 == ipv6.compare("::"))
 			continue;
 
 		// fish out the modules and transcoded modules
@@ -335,6 +337,7 @@ int main (int argc, char *argv[])
 			mods.assign("null");
 			smods.assign("null");
 		}
+		std::string url(ref["url"]);
 		auto keyhash = dht::InfoHash::get(refcs);
 		urfdConfig.timestamp = 0;
 		node.get(
@@ -391,6 +394,8 @@ int main (int argc, char *argv[])
 				smods.assign(urfdConfig.transcodedmods);
 			port = urfdConfig.port[toUType(EUrfdPorts::m17)];
 			src.assign("Ham-DHT");
+			if (urfdConfig.url.size())
+				url.assign(urfdConfig.url);
 		}
 		std::cout << std::left << std::setw(8)  << refcs
 		          << std::left << std::setw(16) << ipv4
@@ -398,7 +403,8 @@ int main (int argc, char *argv[])
 				  << std::left << std::setw(27) << mods
 				  << std::left << std::setw(27) << smods
 				  << std::left << std::setw(7)  << port
-				  << std::left << std::setw(10) << src << std::endl;
+				  << std::left << std::setw(11) << src
+				  <<                               url << std::endl;
 	}
 
 	node.join(); // disconnect from the Ham-DHT
