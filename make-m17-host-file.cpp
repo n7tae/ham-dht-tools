@@ -28,7 +28,7 @@
 #include "dht-values.h"
 #include "dht-helpers.h"
 
-static const std::string Version("1.1.0");
+static const std::string Version("1.1.1");
 std::string hostname("xrf757.openquad.net");
 static bool got_data;
 static bool running;
@@ -95,7 +95,7 @@ static void ReadM17Json(const std::string &url, std::stringstream &ss)
 std::string comname;
 
 using json = nlohmann::json;
-#define GET_STRING(a) ((a).is_string() ? a : "null")
+#define GET_STRING(a) ((a).is_string() ? a : "")
 
 static void Usage(std::ostream &ostr)
 {
@@ -172,24 +172,17 @@ int main (int argc, char *argv[])
 	json urf = json::parse(ss.str());
 	ss.str(std::string());
 
-	std::cout << "# A null 'IPv4Address' or 'IPv6Address' means it's not configured." << std::endl;
-	std::cout << "# A null 'Modules' means it can't be determined." << std::endl;
+	std::cout << "# An empty 'Domain-name', 'IPv4-address' or 'IPv6-address' means it's not configured." << std::endl;
+	std::cout << "# An empty 'Modules' means it can't be determined." << std::endl;
 	std::cout << '#' << std::endl;
-	std::cout << "# 'SpecialModules' for M17 reflectors will pass encrypted voice data." << std::endl;
-	std::cout << "# 'SpecialModules' for URF reflectors are fully transcoded." << std::endl;
+	std::cout << "# 'Special-modules' for M17 reflectors will pass encrypted voice data." << std::endl;
+	std::cout << "# 'Special-modules' for URF reflectors are fully transcoded." << std::endl;
 	std::cout << '#' << std::endl;
-	std::cout << "# A null 'SpecialModules' value can mean either:" << std::endl;
-	std::cout << "#   1) If 'Modules' is null, it can't be determined, or," << std::endl;
-	std::cout << "#   2) if 'Modules' is NOT null, there are no special modules." << std::endl;
+	std::cout << "# An empty 'Special-modules' value can mean either:" << std::endl;
+	std::cout << "#   1) If 'Modules' is empty, it can't be determined, or," << std::endl;
+	std::cout << "#   2) if 'Modules' is NOT empty, there are no special modules." << std::endl;
 	std::cout << '#' << std::endl;
-	std::cout << std::left << std::setw(8)  << "#Refl"
-			  << std::left << std::setw(16) << "IPv4Address"
-			  << std::left << std::setw(40) << "IPv6Address"
-			  << std::left << std::setw(27) << "Modules"
-			  << std::left << std::setw(27) << "SpecialModules"
-			  << std::left << std::setw(7)  << "Port"
-			  << std::left << std::setw(11) << "Source" 
-			  << std::left <<                  "Dashboard-URL" << std::endl;
+	std::cout << "#Reflector;Domain-name;IPv4-address;IPv6-address;Modules;Special-modules;Port;Source;Dashboard-URL" << std::endl;
 
 	w.id(toUType(EMrefdValueID::Config));
 	// iterate through reflectors array
@@ -201,15 +194,15 @@ int main (int argc, char *argv[])
 		refcs.append(ref["designator"].get<std::string>());
 		std::string ipv4(GET_STRING(ref["ipv4"]));
 		std::string ipv6(GET_STRING(ref["ipv6"]));
+		std::string dn(GET_STRING(ref["dns"]));
 
 		// skip the bullsh*t
-		if (0 == ipv4.compare("127.0.0.1") || 0 == ipv4.compare("0.0.0.0") || 0 == ipv4.compare("::1") || 0 == ipv4.compare("::"))
+		if (0 == ipv4.compare("127.0.0.1") || 0 == ipv4.compare("0.0.0.0") || 0 == ipv6.compare("::1") || 0 == ipv6.compare("::"))
 			continue;
 
-		std::string mods("null");
-		std::string smods("null");
+		std::string mods, smods;
 		uint16_t port = ref["port"];
-		std::string url(ref["url"]);
+		std::string url(GET_STRING(ref["url"]));
 		auto keyhash = dht::InfoHash::get(refcs);
 		mrefdConfig.timestamp = 0;
 		node.get(
@@ -267,17 +260,12 @@ int main (int argc, char *argv[])
 				smods.assign(mrefdConfig.encryptedmods);
 			if (mrefdConfig.url.size())
 				url.assign(mrefdConfig.url);
+			if (0 == url.compare("https://YourDashboard.net"))
+				url.clear();
 			port = mrefdConfig.port;
 			src.assign("Ham-DHT");
 		}
-		std::cout << std::left << std::setw(8)  << refcs
-		          << std::left << std::setw(16) << ipv4
-				  << std::left << std::setw(40) << ipv6
-				  << std::left << std::setw(27) << mods
-				  << std::left << std::setw(27) << smods
-				  << std::left << std::setw(7)  << port
-				  << std::left << std::setw(11) << src
-				  << std::left <<                  url << std::endl;
+		std::cout << refcs << ';' << dn << ';' << ipv4 << ';' << ipv6 << ';' << mods << ';' << smods << ';' << port << ';' << src << ';' << url << std::endl;
 	}
 
 	// now for the URF reflectors
@@ -291,6 +279,7 @@ int main (int argc, char *argv[])
 		refcs.append(ref["designator"].get<std::string>());
 		std::string ipv4(GET_STRING(ref["ipv4"]));
 		std::string ipv6(GET_STRING(ref["ipv6"]));
+		std::string dn(GET_STRING(ref["dns"]));
 
 		// skip the bulls*it
 		if (0 == ipv4.compare("127.0.0.1") || 0 == ipv4.compare("0.0.0.0") || 0 == ipv6.compare("::1") || 0 == ipv6.compare("::"))
@@ -326,18 +315,8 @@ int main (int argc, char *argv[])
 					}
 				}
 			}
-			if (0 == mods.size())
-				mods.assign("null");
-			if (0 == smods.size())
-				smods.assign("null");
 		}
-		else
-		{
-			// no modules specified
-			mods.assign("null");
-			smods.assign("null");
-		}
-		std::string url(ref["url"]);
+		std::string url(GET_STRING(ref["url"]));
 		auto keyhash = dht::InfoHash::get(refcs);
 		urfdConfig.timestamp = 0;
 		node.get(
@@ -396,15 +375,10 @@ int main (int argc, char *argv[])
 			src.assign("Ham-DHT");
 			if (urfdConfig.url.size())
 				url.assign(urfdConfig.url);
+			if (0 == url.compare("https://YourDashboard.net"))
+				url.clear();
 		}
-		std::cout << std::left << std::setw(8)  << refcs
-		          << std::left << std::setw(16) << ipv4
-				  << std::left << std::setw(40) << ipv6
-				  << std::left << std::setw(27) << mods
-				  << std::left << std::setw(27) << smods
-				  << std::left << std::setw(7)  << port
-				  << std::left << std::setw(11) << src
-				  <<                               url << std::endl;
+		std::cout << refcs << ';' << dn << ';' << ipv4 << ';' << ipv6 << ';' << mods << ';' << smods << ';' << port << ';' << src << ';' << url << std::endl;
 	}
 
 	node.join(); // disconnect from the Ham-DHT
