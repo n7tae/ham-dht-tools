@@ -28,7 +28,7 @@
 #include "dht-values.h"
 #include "dht-helpers.h"
 
-static const std::string Version("1.1.1");
+static const std::string Version("1.1.2");
 std::string hostname("xrf757.openquad.net");
 static bool got_data;
 static bool running;
@@ -70,6 +70,7 @@ static CURLcode curl_read(const std::string& url, std::ostream& os, long timeout
 		&& CURLE_OK == (code = curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L))
 		&& CURLE_OK == (code = curl_easy_setopt(curl, CURLOPT_FILE, &os))
 		&& CURLE_OK == (code = curl_easy_setopt(curl, CURLOPT_TIMEOUT, timeout))
+		&& CURLE_OK == (code = curl_easy_setopt(curl, CURLOPT_USERAGENT, "libcurl-agent/1.0"))
 		&& CURLE_OK == (code = curl_easy_setopt(curl, CURLOPT_URL, url.c_str())))
 		{
 			code = curl_easy_perform(curl);
