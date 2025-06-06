@@ -165,7 +165,7 @@ int main(int argc, char *argv[])
 	try {
 		node.run(17171, dht::crypto::generateIdentity(name), true, 59973);
 		node.bootstrap(bs, "17171");
-	} catch (std::exception &ex) {
+	} catch (const std::exception &ex) {
 		std::cout << argv[0] << " can't connect to the Ham-DHT! " << ex.what() << std::endl;
 		return 1;
 	}
