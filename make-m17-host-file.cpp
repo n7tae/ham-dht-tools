@@ -28,7 +28,7 @@
 #include "dht-values.h"
 #include "dht-helpers.h"
 
-static const std::string Version("1.1.2");
+static const std::string Version("1.2.0");
 std::string hostname("xrf757.openquad.net");
 static bool got_data;
 static bool running;
@@ -80,7 +80,7 @@ static CURLcode curl_read(const std::string& url, std::ostream& os, long timeout
 	return code;
 }
 
-static void ReadM17Json(const std::string &url, std::stringstream &ss)
+static bool ReadM17Json(const std::string &url, std::stringstream &ss)
 {
 	curl_global_init(CURL_GLOBAL_ALL);
 
@@ -88,9 +88,11 @@ static void ReadM17Json(const std::string &url, std::stringstream &ss)
 		std::cout << "# Copied " << url << std::endl;
 	} else {
 		std::cout << "# ERROR: Could not copy " << url << std::endl;
+		return true;
 	}
 
 	curl_global_cleanup();
+	return false;
 }
 
 std::string comname;
@@ -170,13 +172,27 @@ int main (int argc, char *argv[])
 
 	// downlaod and parse the mrefd and urf json file
 	std::stringstream ss;
-	ReadM17Json("https://dvref.com/mrefd/reflectors/", ss);
-	json mref = json::parse(ss.str());
-	ss.str(std::string());
+	if (ReadM17Json("https://hostfiles.refcheck.radio/M17Hosts.json", ss))
+	{
+		std::cerr << "ERROR curling M17 reflectors from hostfiles.refcheck.radio/M17Hosts.json" << std::endl;
+		return 1;
+	}
 
-	ReadM17Json("https://dvref.com/urfd/reflectors/", ss);
-	json urf = json::parse(ss.str());
-	ss.str(std::string());
+	json mref;
+
+	try {
+		mref = json::parse(ss.str());
+	}
+	catch (const std::exception &e) {
+		std::cerr << "ERROR: " << e.what() << std::endl;
+		return 1;
+	}
+	
+	if (not mref.contains("reflectors"))
+	{
+		std::cerr << "ERROR: the json file contains no reflectors" << std::endl;
+		return 1;
+	}
 
 	std::cout << "# An empty 'Domain-name', 'IPv4-address' or 'IPv6-address' means it's not configured." << std::endl;
 	std::cout << "# An empty 'Modules' means it can't be determined." << std::endl;
@@ -196,195 +212,180 @@ int main (int argc, char *argv[])
 	{
 		running = true;
 		got_data = false;
-		std::string refcs("M17-");
-		refcs.append(ref["designator"].get<std::string>());
+		std::string cs(ref["designator"].get<std::string>());
 		std::string ipv4(GET_STRING(ref["ipv4"]));
 		std::string ipv6(GET_STRING(ref["ipv6"]));
 		std::string dn(GET_STRING(ref["dns"]));
+		std::string src("dvref.com");
 
 		// skip the bullsh*t
-		if (0 == ipv4.compare("127.0.0.1") || 0 == ipv4.compare("0.0.0.0") || 0 == ipv6.compare("::1") || 0 == ipv6.compare("::"))
-			continue;
 
 		std::string mods, smods;
-		uint16_t port = ref["port"];
+		uint16_t port = 17000;
 		std::string url(GET_STRING(ref["url"]));
-		auto keyhash = dht::InfoHash::get(refcs);
-		mrefdConfig.timestamp = 0;
-		node.get(
-			keyhash,
-			[](const std::shared_ptr<dht::Value> &v) {
-				if (v->checkSignature())
-				{
-					switch (v->id)
+		auto keyhash = dht::InfoHash::get(cs);
+		if (0 == cs.substr(0,4).compare("M17-"))
+		{
+			if (ref.contains("port") and ref["port"].is_number_unsigned())
+				port = ref["port"].get<uint16_t>();
+			mrefdConfig.timestamp = 0;
+			node.get(
+				keyhash,
+				[](const std::shared_ptr<dht::Value> &v) {
+					if (v->checkSignature())
 					{
-						case toUType(EMrefdValueID::Config):
-							if (0 == v->user_type.compare(MREFD_CONFIG_1))
-							{
-								got_data = true;
-								auto rdat = dht::Value::unpack<SMrefdConfig1>(*v);
-								if (rdat.timestamp > mrefdConfig.timestamp)
-									mrefdConfig = dht::Value::unpack<SMrefdConfig1>(*v);
-							}
-							break;
-					}
-				}
-				else
-				{
-					std::cerr << "Value signature failed!" << std::endl;
-				}
-				return true;
-			},
-			[](bool success) {
-				if (! success)
-					std::cout << "get() unsuccessful!" << std::endl;
-				std::unique_lock<std::mutex> lck(mtx);
-				running = false;
-				cv.notify_all();
-			},
-			{},	// empty filter
-			w
-		);
-
-		// wait for node.get()
-		std::unique_lock<std::mutex> lck(mtx);
-		while (running)
-		{
-			cv.wait(lck);
-		}
-
-		std::string src("dvref.com");
-		if (got_data)
-		{
-			if (mrefdConfig.ipv4addr.size())
-				ipv4.assign(mrefdConfig.ipv4addr);
-			if (mrefdConfig.ipv6addr.size())
-				ipv6.assign(mrefdConfig.ipv6addr);
-			if (mrefdConfig.modules.size())
-				mods.assign(mrefdConfig.modules);
-			if (mrefdConfig.encryptedmods.size())
-				smods.assign(mrefdConfig.encryptedmods);
-			if (mrefdConfig.url.size())
-				url.assign(mrefdConfig.url);
-			if (0 == url.compare("https://YourDashboard.net"))
-				url.clear();
-			port = mrefdConfig.port;
-			src.assign("Ham-DHT");
-		}
-		std::cout << refcs << ';' << dn << ';' << ipv4 << ';' << ipv6 << ';' << mods << ';' << smods << ';' << port << ';' << src << ';' << url << std::endl;
-	}
-
-	// now for the URF reflectors
-	w.id(toUType(EUrfdValueID::Config));
-	// iterate through reflectors array
-	for (auto &ref : urf["reflectors"])
-	{
-		running = true;
-		got_data = false;
-		std::string refcs("URF");
-		refcs.append(ref["designator"].get<std::string>());
-		std::string ipv4(GET_STRING(ref["ipv4"]));
-		std::string ipv6(GET_STRING(ref["ipv6"]));
-		std::string dn(GET_STRING(ref["dns"]));
-
-		// skip the bulls*it
-		if (0 == ipv4.compare("127.0.0.1") || 0 == ipv4.compare("0.0.0.0") || 0 == ipv6.compare("::1") || 0 == ipv6.compare("::"))
-			continue;
-
-		// fish out the modules and transcoded modules
-		std::string mods, smods;
-		uint16_t port = 17000u;
-		if (ref["modules"].size())
-		{
-			for (auto &m : ref["modules"])
-			{
-				if (m["module"].is_string())
-				{
-					const auto module(m["module"].get<std::string>());
-					mods.append(module);
-					if (m["mode"].is_string())
-					{
-						const auto mode(m["mode"].get<std::string>());
-						if (0 == mode.compare("All"))
+						switch (v->id)
 						{
-							if (m["transcode"].is_boolean())
-							{
-								if (m["transcode"].get<bool>())
-									smods.append(module);
-							}
+							case toUType(EMrefdValueID::Config):
+								if (0 == v->user_type.compare(MREFD_CONFIG_1))
+								{
+									got_data = true;
+									auto rdat = dht::Value::unpack<SMrefdConfig1>(*v);
+									if (rdat.timestamp > mrefdConfig.timestamp)
+										mrefdConfig = dht::Value::unpack<SMrefdConfig1>(*v);
+								}
+								break;
 						}
-						else if (0 == mode.compare("M17"))
+					}
+					else
+					{
+						std::cerr << "Value signature failed!" << std::endl;
+					}
+					return true;
+				},
+				[](bool success) {
+					if (! success)
+						std::cout << "get() unsuccessful!" << std::endl;
+					std::unique_lock<std::mutex> lck(mtx);
+					running = false;
+					cv.notify_all();
+				},
+				{},	// empty filter
+				w
+			);
+
+			// wait for node.get()
+			std::unique_lock<std::mutex> lck(mtx);
+			while (running)
+			{
+				cv.wait(lck);
+			}
+
+			if (got_data)
+			{
+				if (mrefdConfig.ipv4addr.size())
+					ipv4.assign(mrefdConfig.ipv4addr);
+				if (mrefdConfig.ipv6addr.size())
+					ipv6.assign(mrefdConfig.ipv6addr);
+				if (mrefdConfig.modules.size())
+					mods.assign(mrefdConfig.modules);
+				if (mrefdConfig.encryptedmods.size())
+					smods.assign(mrefdConfig.encryptedmods);
+				if (mrefdConfig.url.size())
+					url.assign(mrefdConfig.url);
+				port = mrefdConfig.port;
+				src.assign("Ham-DHT");
+			}
+		}
+		else if (0 == cs.substr(0,3).compare("URF"))
+		{
+			// fish out the modules and transcoded modules
+			if (ref.contains("modules"))
+			{
+				for (auto &mod : ref["modules"])
+				{
+					auto m = mod["module"].get<std::string>();
+					const std::string mode(GET_STRING(mod["mode"]));
+					if (0==mode.compare("All") or 0==mode.compare("M17"))
+					{
+						mods.append(m);
+						if (mod["transcode"].is_boolean())
 						{
-							if (m["port"].is_number_unsigned())
-								port = m["port"].get<uint16_t>();
+							if (mod["transcode"].get<bool>())
+								smods.append(m);
+						}
+						if (0 == mode.compare("M17"))
+						{
+							if (mod["port"].is_number_unsigned())
+								port = mod["port"].get<uint16_t>();
 						}
 					}
 				}
 			}
-		}
-		std::string url(GET_STRING(ref["url"]));
-		auto keyhash = dht::InfoHash::get(refcs);
-		urfdConfig.timestamp = 0;
-		node.get(
-			keyhash,
-			[](const std::shared_ptr<dht::Value> &v) {
-				if (v->checkSignature())
-				{
-					switch (v->id)
+			url.assign(GET_STRING(ref["url"]));
+			auto keyhash = dht::InfoHash::get(cs);
+			urfdConfig.timestamp = 0;
+			node.get(
+				keyhash,
+				[](const std::shared_ptr<dht::Value> &v) {
+					if (v->checkSignature())
 					{
-					case toUType(EUrfdValueID::Config):
-						if (0 == v->user_type.compare(URFD_CONFIG_1))
+						switch (v->id)
 						{
-							got_data = true;
-							auto rdat = dht::Value::unpack<SUrfdConfig1>(*v);
-							if (rdat.timestamp > urfdConfig.timestamp)
-								urfdConfig = dht::Value::unpack<SUrfdConfig1>(*v);
+						case toUType(EUrfdValueID::Config):
+							if (0 == v->user_type.compare(URFD_CONFIG_1))
+							{
+								got_data = true;
+								auto rdat = dht::Value::unpack<SUrfdConfig1>(*v);
+								if (rdat.timestamp > urfdConfig.timestamp)
+									urfdConfig = dht::Value::unpack<SUrfdConfig1>(*v);
+							}
 						}
 					}
-				}
-				else
-				{
-					std::cerr << "Value signature failed!" << std::endl;
-				}
-				return true;
-			},
-			[](bool success) {
-				if (! success)
-					std::cout << "get() unsuccessful!" << std::endl;
-				std::unique_lock<std::mutex> lck(mtx);
-				running = false;
-				cv.notify_all();
-			},
-			{},	// empty filter
-			w
-		);
+					else
+					{
+						std::cerr << "Value signature failed!" << std::endl;
+					}
+					return true;
+				},
+				[](bool success) {
+					if (! success)
+						std::cout << "get() unsuccessful!" << std::endl;
+					std::unique_lock<std::mutex> lck(mtx);
+					running = false;
+					cv.notify_all();
+				},
+				{},	// empty filter
+				w
+			);
 
-		// wait for node.get()
-		std::unique_lock<std::mutex> lck(mtx);
-		while (running)
+			// wait for node.get()
+			std::unique_lock<std::mutex> lck(mtx);
+			while (running)
+			{
+				cv.wait(lck);
+			}
+
+			if (got_data)
+			{
+				if (urfdConfig.ipv4addr.size())
+					ipv4.assign(urfdConfig.ipv4addr);
+				if (urfdConfig.ipv6addr.size())
+					ipv6.assign(urfdConfig.ipv6addr);
+				if (urfdConfig.modules.size())
+					mods.assign(urfdConfig.modules);
+				if (urfdConfig.transcodedmods.size())
+					smods.assign(urfdConfig.transcodedmods);
+				port = urfdConfig.port[toUType(EUrfdPorts::m17)];
+				src.assign("Ham-DHT");
+				if (urfdConfig.url.size())
+					url.assign(urfdConfig.url);
+			}
+		}
+		else
 		{
-			cv.wait(lck);
+			std::cout << "# Don't know how to parse a '" << cs << "' reflector!" << std::endl;
 		}
 
-		std::string src("dvref.com");
-		if (got_data)
-		{
-			if (urfdConfig.ipv4addr.size())
-				ipv4.assign(urfdConfig.ipv4addr);
-			if (urfdConfig.ipv6addr.size())
-				ipv6.assign(urfdConfig.ipv6addr);
-			if (urfdConfig.modules.size())
-				mods.assign(urfdConfig.modules);
-			if (urfdConfig.transcodedmods.size())
-				smods.assign(urfdConfig.transcodedmods);
-			port = urfdConfig.port[toUType(EUrfdPorts::m17)];
-			src.assign("Ham-DHT");
-			if (urfdConfig.url.size())
-				url.assign(urfdConfig.url);
-			if (0 == url.compare("https://YourDashboard.net"))
-				url.clear();
-		}
-		std::cout << refcs << ';' << dn << ';' << ipv4 << ';' << ipv6 << ';' << mods << ';' << smods << ';' << port << ';' << src << ';' << url << std::endl;
+		if (0 == port)
+			continue;
+		if (0 == ipv4.compare("127.0.0.1") || 0 == ipv4.compare("0.0.0.0") || 0 == ipv6.compare("::1") || 0 == ipv6.compare("::"))
+			continue;
+
+		if (0 == url.compare("https://YourDashboard.net"))
+			url.clear();
+
+		std::cout << cs << ';' << dn << ';' << ipv4 << ';' << ipv6 << ';' << mods << ';' << smods << ';' << port << ';' << src << ';' << url << std::endl;
 	}
 
 	node.join(); // disconnect from the Ham-DHT
