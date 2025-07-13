@@ -204,7 +204,7 @@ int main (int argc, char *argv[])
 	std::cout << "#   1) If 'Modules' is empty, it can't be determined, or," << std::endl;
 	std::cout << "#   2) if 'Modules' is NOT empty, there are no special modules." << std::endl;
 	std::cout << '#' << std::endl;
-	std::cout << "#Reflector;Domain-name;IPv4-address;IPv6-address;Modules;Special-modules;Port;Source;Dashboard-URL" << std::endl;
+	std::cout << "#Reflector;Version;Domain-name;IPv4-address;IPv6-address;Modules;Special-modules;Port;Source;Dashboard-URL" << std::endl;
 
 	w.id(toUType(EMrefdValueID::Config));
 	// iterate through reflectors array
@@ -217,6 +217,7 @@ int main (int argc, char *argv[])
 		std::string ipv6(GET_STRING(ref["ipv6"]));
 		std::string dn(GET_STRING(ref["dns"]));
 		std::string src("dvref.com");
+		std::string version;
 
 		// skip the bullsh*t
 
@@ -273,6 +274,7 @@ int main (int argc, char *argv[])
 
 			if (got_data)
 			{
+				version.assign(mrefdConfig.version);
 				if (mrefdConfig.ipv4addr.size())
 					ipv4.assign(mrefdConfig.ipv4addr);
 				if (mrefdConfig.ipv6addr.size())
@@ -358,6 +360,7 @@ int main (int argc, char *argv[])
 
 			if (got_data)
 			{
+				version.assign(urfdConfig.version);
 				if (urfdConfig.ipv4addr.size())
 					ipv4.assign(urfdConfig.ipv4addr);
 				if (urfdConfig.ipv6addr.size())
@@ -385,7 +388,7 @@ int main (int argc, char *argv[])
 		if (0 == url.compare("https://YourDashboard.net"))
 			url.clear();
 
-		std::cout << cs << ';' << dn << ';' << ipv4 << ';' << ipv6 << ';' << mods << ';' << smods << ';' << port << ';' << src << ';' << url << std::endl;
+		std::cout << cs << ';' << version << ';' << dn << ';' << ipv4 << ';' << ipv6 << ';' << mods << ';' << smods << ';' << port << ';' << src << ';' << url << std::endl;
 	}
 
 	node.join(); // disconnect from the Ham-DHT
