@@ -134,7 +134,7 @@ Earlier versions of this library are available and *may* work. If the tools buil
 
 #### Building and installing the OpenDHT development library
 
-OpenDHT is available [here](https://github./com/savoirfairelinux/opendht.git). Complete building and installing instructions are in the [OpenDHT Wiki](https://github.com/savoirfairelinux/opendht/wiki/Build-the-library). Pascal and restinio support is not required for these tools and so can be considered optional. With this in mind, this should work on Debian/Ubuntu-based systems:
+OpenDHT is available [here](https://github.com/savoirfairelinux/opendht.git). Complete building and installing instructions are in the [OpenDHT Wiki](https://github.com/savoirfairelinux/opendht/wiki/Build-the-library). Pascal and restinio support is not required for these tools and so can be considered optional. With this in mind, this should work on Debian/Ubuntu-based systems:
 
 First, install OpenDHT dependencies
 
