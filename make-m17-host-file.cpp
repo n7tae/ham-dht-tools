@@ -29,8 +29,9 @@
 #include "dht-values.h"
 #include "dht-helpers.h"
 
-static const std::string Version("1.3.0");
+static const std::string Version("1.4.0");
 std::string hostname("xrf757.openquad.net");
+std::string target;
 static bool got_data;
 static bool running;
 static std::condition_variable cv;
@@ -105,52 +106,39 @@ using json = nlohmann::json;
 static void Usage(std::ostream &ostr)
 {
 	ostr
-	<< std::endl << "Usage: " << comname << " [Option]\n\n"
-	<< "There are three mutually exclusive options:\n"
-	<< "-b hostname\n"
-	<< "   Where 'hostname' is any running node on the Ham-DHT network\n"
-	<< "   If not specified, " << hostname << " will be used.\n"
-	<< "-v | --version\n"
-	<< "   Will print the version and exit.\n"
-	<< "-h | --help\n"
-	<< "   Will print this usage message and exit." << std::endl;
+	<< std::endl << "Usage: " << comname << " [target  [hostname]]\n\n"
+	<< "Ther can be zero, one or two parameters"
+	<< "The first parameter:\n"
+	<< "target\n"
+	<< "    This could be either a pathname to a M17Hosts.json file, or\n"
+	<< "    a url where the file can be obtained with the curl library.\n"
+	<< "The optional second paramater:\n"
+	<< "hostname\n"
+	<< "    Where 'hostname' is any running node on the Ham-DHT network\n"
+	<< "    If not specified, " << hostname << " will be used.\n"
+	<< "If no parameters are supplied, a usage message will be printed.\n"
+	<< std::endl;
 }
 
 enum class ESource { dvref, dht };
 int main (int argc, char *argv[])
 {
 	comname.assign(argv[0]);
-	if (2 == argc)
+	switch (argc)
 	{
-		const std::string arg(argv[1]);
-		if (0 == arg.compare("-v") or 0 == arg.compare("--version"))
-		{
-			std::cout << "Version #" << Version << std::endl;
-			return EXIT_SUCCESS;
-		}
-		else if (0 == arg.compare("-h") || 0 == arg.compare("--help"))
-		{
+		case 1:
 			Usage(std::cout);
 			return EXIT_SUCCESS;
-		}
-		Usage(std::cerr);
-		return EXIT_FAILURE;
-	}
-	else if (3 == argc)
-	{
-		const std::string arg(argv[1]);
-		if (0 == arg.compare("-b"))
+		case 2:
+			target.assign(argv[1]);
+			break;
+		case 3:
+			target.assign(argv[1]);
 			hostname.assign(argv[2]);
-		else
-		{
+			break;
+		default:
 			Usage(std::cerr);
 			return EXIT_FAILURE;
-		}
-	}
-	else if (3 < argc)
-	{
-		Usage(std::cerr);
-		return EXIT_FAILURE;
 	}
 
 	// boot up the Ham-DTH
@@ -176,10 +164,22 @@ int main (int argc, char *argv[])
 
 	// downlaod and parse the mrefd and urf json file
 	std::stringstream ss;
-	if (ReadM17Json("https://hostfiles.refcheck.radio/M17Hosts.json", ss))
+	if (std::string::npos != target.find(":/"))
 	{
-		std::cerr << "ERROR curling M17 reflectors from hostfiles.refcheck.radio/M17Hosts.json" << std::endl;
-		return 1;
+		if (ReadM17Json(target, ss))
+		{
+			std::cerr << "ERROR curling M17 reflectors from hostfiles.refcheck.radio/M17Hosts.json" << std::endl;
+			return EXIT_FAILURE;
+		}
+	} else {
+		std::ifstream ifile(target);
+		if (ifile.is_open())
+		{
+			ss << ifile.rdbuf();
+		} else {
+			std::cerr << "ERROR: could not open " << target << std::endl;
+			return EXIT_FAILURE;
+		}
 	}
 
 	json mref;
@@ -189,13 +189,17 @@ int main (int argc, char *argv[])
 	}
 	catch (const std::exception &e) {
 		std::cerr << "ERROR: " << e.what() << std::endl;
-		return 1;
+		std::cerr << target << "contains " << std::endl;
+		std::cerr << ss.str() << std::endl;
+		return EXIT_FAILURE;
 	}
 	
 	if (not mref.contains("reflectors"))
 	{
-		std::cerr << "ERROR: the json file contains no reflectors" << std::endl;
-		return 1;
+		std::cerr << "ERROR: " << target << " contains no reflectors" << std::endl;
+		std::cerr << target << " contents:" << std::endl;
+		std::cerr << ss.str() << std::endl;
+		return EXIT_FAILURE;
 	}
 
 	std::cout

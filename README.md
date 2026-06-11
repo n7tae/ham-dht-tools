@@ -58,9 +58,11 @@ So far there are four tools, several more are planned.
 
 ### *make-m17-host-file*
 
-*make-m17-host-file* generates an M17 Host file suitable for M17 clients. The file is an ascii file describing one M17 reflector in each line of the file. Fields include: reflector callsign, IPv4 and IPv6 address, configured modules, modules that pass encrypted traffic or modules that are transcoded, and the binding UDP port number where the reflector is listening for connections. A final column lists the source of the configuration information. If you see `dvref.com` in the final column, information for that reflector might be inaccurate: that information is entered manually and so it may contain errors. If you see `Ham-DHT` in the last column, then that information was produced and published by the reflector according to its configuration.
+*make-m17-host-file* generates an M17 Host file suitable for M17 clients. The file is an ascii file describing one M17 reflector in each line of the file. Fields include: reflector callsign, IPv4 and IPv6 address, configured modules, modules that pass encrypted traffic or modules that are transcoded, and the binding UDP port number where the reflector is listening for connections. If there is no version listed in the second field, information for that reflector might be inaccurate:because some if it is entered manually and so it may contain errors. If you see version number in the second field, then that information was produced and published by the reflector according to its configuration.
 
-Type `./make-m17-host-file --help` for options. This program will print to stdout. To save it to a file, type `./make-m17-host-file > M17_Hosts.txt`, or whatever you want to name it. See comments at the beginning of the generated file for exactly how to interpret `null` entries.
+This repo contain a relatively recent M17Hosts.json file from refcheck.radio. You can do a `git pull` to make sure you have the latest one.
+
+Type `./make-m17-host-file` for options. This program will print to stdout. To save it to a file, type `./make-m17-host-file M17Hosts.json > MyHostFile.txt`, or whatever you want to name it. See comments at the beginning of the generated file for exactly how to interpret `null` entries.
 
 ### *dht-get*
 
