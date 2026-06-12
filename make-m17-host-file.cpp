@@ -29,7 +29,7 @@
 #include "dht-values.h"
 #include "dht-helpers.h"
 
-static const std::string Version("1.4.0");
+static const std::string Version("1.4.1");
 std::string hostname("xrf757.openquad.net");
 std::string target;
 static bool got_data;
@@ -200,6 +200,13 @@ int main (int argc, char *argv[])
 		std::cerr << target << " contents:" << std::endl;
 		std::cerr << ss.str() << std::endl;
 		return EXIT_FAILURE;
+	}
+
+	std::ofstream ofile("M17Hosts.json", std::ios::trunc);
+	if (ofile.is_open())
+	{
+		ofile << ss.rdbuf();
+		ofile.close();
 	}
 
 	std::cout
