@@ -60,7 +60,7 @@ So far there are four tools, several more are planned.
 
 *make-m17-host-file* generates an M17 Host file designed for [*mspot*](https://github.com/n7tae/mspot). The file is an ascii file describing one M17 reflector in each line of the file. Fields include: reflector callsign, IPv4 and IPv6 address, configured modules, modules that pass encrypted traffic or modules that are transcoded, and the binding UDP port number where the reflector is listening for connections. If there is no version listed in the second field, information for that reflector might be inaccurate:because some if it is entered manually and so it may contain errors. If you see version number in the second field, then that information was produced and published by the reflector according to its configuration.
 
-Type `./make-m17-host-file` for options. This program will print to stdout. To save it to a file, type `./make-m17-host-file https://m17-project.github.io/hostfiles/M17Hosts.json > MyHostFile.txt`, or whatever you want to name it. See comments at the beginning of the generated file for exactly how to interpret `null` entries.
+Type `./make-m17-host-file` for options. This program will print to stdout. To save the output to a file, type `./make-m17-host-file https://m17-project.github.io/hostfiles/M17Hosts.json > MyHostFile.txt`, or whatever you want to name it. See comments at the beginning of the generated file for exactly how to interpret `null` entries.
 
 ### *dht-get*
 
