@@ -20,6 +20,7 @@
 #include <curl/curl.h>
 #include <opendht.h>
 #include <iostream>
+#include <fstream>
 #include <sstream>
 #include <string>
 #include <mutex>
