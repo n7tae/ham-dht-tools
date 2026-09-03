@@ -30,7 +30,7 @@
 #include "dht-values.h"
 #include "dht-helpers.h"
 
-static const std::string Version("1.4.1");
+static const std::string Version("1.4.2");
 std::string hostname("xrf757.openquad.net");
 std::string target;
 static bool got_data;
@@ -422,24 +422,6 @@ int main (int argc, char *argv[])
 	}
 
 	node.join(); // disconnect from the Ham-DHT
-
-	std::cout << "\n\n"
-	<< "# ################## Direct Routing Targets ##################\n"
-	<< "#\n"
-	<< "# You do not link to these target, but you load them the same way you link to a reflector:\n"
-	<< "# Put the destination in DST and quick-key.\n"
-	<< "# Capabilities: 2 chars:\n"
-	<< "# 1. Data handling:\n"
-	<< "#    'S' if only stream data is processed\n"
-	<< "#    'P' if only packet data is processed\n"
-	<< "#    'B' if both packet and stream data is processed\n"
-	<< "# 2. TYPE handling:\n"
-	<< "#    'L' if only legacy TYPE format is used\n"
-	<< "#    '3' if only M17 Specification V#3 TYPE format is used\n"
-	<< "#    'B' if both formats are understood\n"
-	<< "# The example shows that N0CALL will only receive Stream data at 44.46.48.201:17100, and uses the legacy TYPE format\n"
-	<< "# NOCALL:SL;44.46.48.201;;17100\n"
-	<< "# Destination;Capabilities;IPv4Address;IPv6Address;Port\n";
 
 	return EXIT_SUCCESS;
 }
