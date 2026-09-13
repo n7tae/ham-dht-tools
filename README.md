@@ -60,7 +60,13 @@ So far there are four tools, several more are planned.
 
 *make-m17-host-file* generates an M17 Host file designed for [*mspot*](https://github.com/n7tae/mspot). The file is an ascii file describing one M17 reflector in each line of the file. Fields include: reflector callsign, IPv4 and IPv6 address, configured modules, modules that pass encrypted traffic or modules that are transcoded, and the binding UDP port number where the reflector is listening for connections. If there is no version listed in the second field, information for that reflector might be inaccurate because some of it is entered manually and so may contain errors. If you see a version number in the second field, then that information was produced and published on the Ham-DHT by the reflector according to its configuration.
 
-Type `./make-m17-host-file` for options. This program will print to stdout. To save the output to a file, type `./make-m17-host-file https://m17-project.github.io/hostfiles/M17Hosts.json > MyHostFile.txt`, or whatever you want to name it. See comments at the beginning of the generated file for exactly how to interpret `null` entries.
+Type `./make-m17-host-file` for options. This program will print to stdout. To save the output to a file, `MyHostFile.txt`, type:
+
+```
+./make-m17-host-file https://m17-project.github.io/hostfiles/M17Hosts.json > MyHostFile.txt
+```
+
+or whatever you want to name it. See comments at the beginning of the generated file for exactly how to interpret `null` entries.
 
 ### *dht-get*
 
@@ -134,12 +140,11 @@ Earlier versions of this library are available and *may* work. If the tools buil
 
 #### Building and installing the OpenDHT development library
 
-OpenDHT is available [here](https://github.com/savoirfairelinux/opendht.git). Complete building and installing instructions are in the [OpenDHT Wiki](https://github.com/savoirfairelinux/opendht/wiki/Build-the-library). Pascal and restinio support is not required for these tools and so can be considered optional. With this in mind, this should work on Debian/Ubuntu-based systems:
-
 First, install OpenDHT dependencies
 
 ```
-sudo apt install libncurses5-dev libreadline-dev nettle-dev libgnutls28-dev libargon2-0-dev libmsgpack-dev  libssl-dev libfmt-dev libjsoncpp-dev libhttp-parser-dev libasio-dev cmake pkg-config
+sudo apt install cmake pkg-config libncurses5-dev libreadline-dev nettle-dev libgnutls28-dev libargon2-dev libmsgpack-dev libssl-dev libfmt-dev libjsoncpp-dev libhttp-parser-dev libasio-dev libmsgpack-cxx-dev libcppunit-dev
+
 ```
 
 Then clone the *ham-dht-tools* repo
@@ -153,7 +158,7 @@ Finally, build and install the library
 ```
 cd opendht
 mkdir build && cd build
-cmake -DOPENDHT_PYTHON=OFF -DCMAKE_INSTALL_PREFIX=/usr ..
+cmake -DOPENDHT_TOOLS=OFF ..
 make
 sudo make install
 ```
@@ -165,6 +170,7 @@ Please note that there is no easy way to uninstall OpenDHT once it's been instal
 After the OpenDHT library has been installed, clone and make the tools:
 
 ```
+sudo apt install git build-essential g++ libcurl4-gnutls-dev nlohmann-json3-dev jq
 git clone https://github.com/n7tae/ham-dht-tools.git
 cd ham-dht-tools
 make
