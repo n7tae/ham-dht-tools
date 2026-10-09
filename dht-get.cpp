@@ -30,7 +30,7 @@ static std::condition_variable cv;
 static std::mutex mtx;
 static char section = 'a';
 static bool use_local = false;
-static const std::string default_bs("xrf757.openquad.net");
+static const std::string default_bs("m17.openquad.net");
 static dht::Where w;
 static SMrefdConfig1  mrefdConfig;
 static SMrefdPeers1   mrefdPeers;

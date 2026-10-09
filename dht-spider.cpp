@@ -25,7 +25,7 @@
 
 #include "dht-values.h"
 
-static const std::string default_bs("xlx757.openquad.net");
+static const std::string default_bs("m17.openquad.net");
 static dht::Where w;
 SMrefdPeers1 mrefdPeers;
 SUrfdPeers1  urfdPeers;

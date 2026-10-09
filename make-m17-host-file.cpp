@@ -30,8 +30,8 @@
 #include "dht-values.h"
 #include "dht-helpers.h"
 
-static const std::string Version("1.4.2");
-std::string hostname("xrf757.openquad.net");
+static const std::string Version("1.4.3");
+std::string hostname("m17.openquad.net");
 std::string target;
 static bool got_data;
 static bool running;
@@ -108,16 +108,18 @@ static void Usage(std::ostream &ostr)
 {
 	ostr
 	<< std::endl << "Usage: " << comname << " [target  [hostname]]\n\n"
-	<< "Ther can be zero, one or two parameters"
-	<< "The first parameter:\n"
-	<< "target\n"
+	<< "There can be zero, one or two parameters.\n"
+	<< "target:\n"
 	<< "    This could be either a pathname to a M17Hosts.json file, or\n"
 	<< "    a url where the file can be obtained with the curl library.\n"
-	<< "The optional second paramater:\n"
-	<< "hostname\n"
+	<< "hostname:\n"
 	<< "    Where 'hostname' is any running node on the Ham-DHT network\n"
-	<< "    If not specified, " << hostname << " will be used.\n"
-	<< "If no parameters are supplied, a usage message will be printed.\n"
+	<< "    If not specified, " << hostname << " will be used.\n\n"
+	<< "Example:\n\n"
+	<< "./make-m17-host-file https://m17-project.github.io/hostfiles/M17Hosts.json > M17HostFile.txt\n\n"
+	<< "will boot from m17.openquad.net and then read the M17-Project's copy of DVRef.com M17 reflector\n"
+	<< "json file and produce a file mspot or mvoice can use.\n\n"
+	<< "If no parameters are supplied, this usage message will be printed.\n"
 	<< std::endl;
 }
 

@@ -116,61 +116,52 @@ M17-MMM doc@mdhamclub.com
 M17-ZZZ sleepy@quiethams.org
 ```
 
-## building the tools
+## Building the ham-dht tools
 
 Several packages are needed:
 
 ```
-sudo apt install git build-essential
+sudo apt install git build-essential libcurl4-gnutls-dev nlohmann-json3-dev jq
 ```
 
-### The OpenDHT development library
+## OpenDHT development library
 
-There are two choices:
+**Ham-DHT** is implemented using a distributed hash table provided by OpenDHT.
 
-#### Installing the OpenDHT development library
-
-On Debian 12 and Ubuntu 24.04 or newer, you can install the library directly:
+Some Debian OS distributions, like Debian 12 and Ubuntu 24.04, have a pre-build development package. Try:
 
 ```
 sudo apt install libopendht-dev
 ```
 
-Earlier versions of this library are available and *may* work. If the tools build without errors and have no execution errors, then you are good to go. Otherwise you need to uninstall that library and compile and install it yourself.
-
-#### Building and installing the OpenDHT development library
-
-First, install OpenDHT dependencies
+If the description doesn't show that this package was build with C++17 or newer, go ahead and remove it:
 
 ```
-sudo apt install cmake pkg-config libncurses5-dev libreadline-dev nettle-dev libgnutls28-dev libargon2-dev libmsgpack-dev libssl-dev libfmt-dev libjsoncpp-dev libhttp-parser-dev libasio-dev libmsgpack-cxx-dev libcppunit-dev
-
+sudo apt remove libopendht-dev
 ```
 
-Then clone the *ham-dht-tools* repo
+If there is no suitable package, you'll need to build it yourself.
+
+OpenDHT is available [here](https://github.com/savoirfairelinux/opendht.git). Building and installing instructions are in the `BUILD.md` file. First, install the dependencies listed in the file. Then, build the development library. You don't need python or any extra OpenDHT tools, just do the minimum build to make the libopendht-dev library:
 
 ```
+# clone the repo
 git clone https://github.com/savoirfairelinux/opendht.git
-```
 
-Finally, build and install the library
-
-```
+# build and install
 cd opendht
 mkdir build && cd build
 cmake -DOPENDHT_TOOLS=OFF ..
 make
 sudo make install
+cd ../..
 ```
-
-Please note that there is no easy way to uninstall OpenDHT once it's been installed. However, you mostly building a development library and it is based on static header files and libraries and doesn't use any resources except for a small amount of disk space.
 
 ## Building the tools
 
 After the OpenDHT library has been installed, clone and make the tools:
 
 ```
-sudo apt install git build-essential g++ libcurl4-gnutls-dev nlohmann-json3-dev jq
 git clone https://github.com/n7tae/ham-dht-tools.git
 cd ham-dht-tools
 make
