@@ -30,11 +30,11 @@
 #include "dht-values.h"
 #include "dht-helpers.h"
 
-static const std::string Version("1.4.3");
+static const std::string Version("1.4.4");
 std::string hostname("m17.openquad.net");
 std::string target;
 static bool got_data;
-static bool running;
+static bool complete;
 static std::condition_variable cv;
 static std::mutex mtx;
 static char section = 'a';
@@ -231,7 +231,7 @@ int main (int argc, char *argv[])
 	// iterate through reflectors array
 	for (auto &ref : mref["reflectors"])
 	{
-		running = true;
+		complete = false;
 		got_data = false;
 		std::string cs(ref["designator"].get<std::string>());
 		std::string ipv4(GET_STRING(ref["ipv4"]));
@@ -286,19 +286,20 @@ int main (int argc, char *argv[])
 				[](bool success) {
 					if (! success)
 						std::cout << "get() unsuccessful!" << std::endl;
-					std::unique_lock<std::mutex> lck(mtx);
-					running = false;
-					cv.notify_all();
+					{
+						std::lock_guard<std::mutex> lck(mtx);
+						complete = true;
+					}
+					cv.notify_one();
 				},
 				{},	// empty filter
 				w
 			);
 
 			// wait for node.get()
-			std::unique_lock<std::mutex> lck(mtx);
-			while (running)
 			{
-				cv.wait(lck);
+				std::unique_lock<std::mutex> lck(mtx);
+				cv.wait(lck, []{ return complete; });
 			}
 
 			if (got_data)
@@ -372,19 +373,20 @@ int main (int argc, char *argv[])
 				[](bool success) {
 					if (! success)
 						std::cout << "get() unsuccessful!" << std::endl;
-					std::unique_lock<std::mutex> lck(mtx);
-					running = false;
-					cv.notify_all();
+					{
+						std::lock_guard<std::mutex> lck(mtx);
+						complete = true;
+					}
+					cv.notify_one();
 				},
 				{},	// empty filter
 				w
 			);
 
 			// wait for node.get()
-			std::unique_lock<std::mutex> lck(mtx);
-			while (running)
 			{
-				cv.wait(lck);
+				std::unique_lock<std::mutex> lck(mtx);
+				cv.wait(lck, []{ return complete; });
 			}
 
 			if (got_data)

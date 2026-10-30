@@ -25,7 +25,7 @@
 #include "dht-values.h"
 #include "dht-helpers.h"
 
-static bool running = true;
+static bool complete = false;
 static std::condition_variable cv;
 static std::mutex mtx;
 static char section = 'a';
@@ -214,8 +214,10 @@ int main(int argc, char *argv[])
 					{
 						std::cerr << "get() failed!" << std::endl;
 					}
-					std::unique_lock<std::mutex> lck(mtx);
-					running = false;
+					{
+						std::lock_guard<std::mutex> lck(mtx);
+						complete = true;
+					}
 					cv.notify_all();
 				},
 				{},	// empty filter
@@ -265,20 +267,20 @@ int main(int argc, char *argv[])
 					{
 						std::cerr << "get() failed!" << std::endl;
 					}
-					std::unique_lock<std::mutex> lck(mtx);
-					running = false;
-					cv.notify_all();
+					{
+						std::lock_guard<std::mutex> lck(mtx);
+						complete = true;
+					}
+					cv.notify_one();
 				},
 				{},	// empty filter
 				w
 			);
 			break;
 	}
-
-	std::unique_lock<std::mutex> lck(mtx);
-	while (running)
 	{
-		cv.wait(lck);
+		std::unique_lock<std::mutex> lck(mtx);
+		cv.wait(lck, []{ return complete; });
 	}
 
 	std::cout << '{';
